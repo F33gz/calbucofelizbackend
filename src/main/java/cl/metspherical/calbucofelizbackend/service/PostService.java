@@ -1,6 +1,7 @@
 package cl.metspherical.calbucofelizbackend.service;
 
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
+import cl.metspherical.calbucofelizbackend.dto.*;
 import cl.metspherical.calbucofelizbackend.model.Category;
 import cl.metspherical.calbucofelizbackend.model.Post;
 import cl.metspherical.calbucofelizbackend.model.PostImage;
@@ -8,10 +9,12 @@ import cl.metspherical.calbucofelizbackend.model.User;
 import cl.metspherical.calbucofelizbackend.repository.CategoryRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostRepository;
 import cl.metspherical.calbucofelizbackend.repository.UserRepository;
+import cl.metspherical.calbucofelizbackend.repository.PostImageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final PostImageRepository postImageRepository;
 
     public UUID createPost(CreatePostRequestDTO request) {
         // 1. validar y obtener usuario
@@ -117,4 +121,44 @@ public class PostService {
         return "image/jpeg";
     }
 
+    public PostDetailDTO getPostById(UUID id) {
+        Post post = postRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+        return mapPostToPostDetailDTO(post);
+    }
+
+    public Optional<PostImage> getPostImageById(UUID imageId) {
+        return postImageRepository.findById(imageId);
+    }
+
+    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
+        AuthorDTO authorDTO = AuthorDTO.builder()
+                .username(post.getAuthor().getUsername())
+                .avatar(post.getAuthor().getAvatar())
+                .build();
+
+        List<PostImageDTO> imageDTOs = post.getImages().stream()
+                .map(image -> PostImageDTO.builder()
+                        .url(buildImageUrl(image.getId()))
+                        .build())
+                .collect(Collectors.toList());
+
+        List<CategoryDTO> categoryDTOs = post.getCategories().stream()
+                .map(category -> CategoryDTO.builder()
+                        .name(category.getName())
+                        .build())
+                .collect(Collectors.toList());
+
+        return PostDetailDTO.builder()
+                .content(post.getContent())
+                .createdAt(post.getCreatedAt())
+                .author(authorDTO)
+                .images(imageDTOs)
+                .categories(categoryDTOs)
+                .build();
+    }
+
+    private String buildImageUrl(UUID imageId) {
+        return "http://localhost:8080/api/posts/image/" + imageId.toString();
+    }
 }

@@ -1,9 +1,11 @@
 package cl.metspherical.calbucofelizbackend.controller;
 
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
+import cl.metspherical.calbucofelizbackend.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,5 +49,20 @@ public class PostController {
         UUID postId = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("postId", postId));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PostDetailDTO> getPost(@PathVariable UUID id) {
+        PostDetailDTO post = postService.getPostById(id);
+        return ResponseEntity.ok(post);
+    }
+
+    @GetMapping("/image/{imageId}")
+    public ResponseEntity<byte[]> getPostImage(@PathVariable UUID imageId) {
+        return postService.getPostImageById(imageId)
+                .map(image -> ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(image.getContentType()))
+                        .body(image.getImg()))
+                .orElse(ResponseEntity.notFound().build());
     }
 }
