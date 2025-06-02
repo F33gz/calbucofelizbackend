@@ -1,7 +1,9 @@
 package cl.metspherical.calbucofelizbackend.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -20,26 +22,22 @@ public class Post {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Setter(AccessLevel.NONE)
-    private UUID id;
-
-    @Column(name = "text_content", nullable = false)
-    @NonNull
-    private String content;
-
+    @Column(columnDefinition = "UUID")
+    private UUID id;    @Column(name = "text_content", nullable = false)
+    @NotBlank(message = "Post content cannot be blank")
+    private String content;@CreationTimestamp
     @Column(
             name = "created_at",
             nullable = false,
+            updatable = false,
             columnDefinition = "timestamp with time zone")
-    @Setter(AccessLevel.NONE)
     private LocalDateTime createdAt;
 
-    @ManyToOne()
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "user_id",
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_post_user"))
-    @NonNull
     private User author;
 
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
@@ -56,17 +54,15 @@ public class Post {
     @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
-    @OneToMany(
-            mappedBy = "post",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
-    private Set<PostImage> images = new HashSet<>();
+    private Set<PostImage> images = new HashSet<>();    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private Set<Comment> comments = new HashSet<>();
 
-    @PrePersist
-    private void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private Set<PostLike> likes = new HashSet<>();
 
     public void addImage(PostImage image) {
         images.add(image);

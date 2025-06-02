@@ -1,6 +1,8 @@
 package cl.metspherical.calbucofelizbackend.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.HashSet;
@@ -23,14 +25,12 @@ public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Setter(AccessLevel.NONE)
-    private Integer id;
+    private Integer id;    @Column(length = 20, nullable = false)
 
-    @Column(length = 20, nullable = false)
-    @NonNull
-    private String name;
+    @NotBlank(message = "Category name cannot be blank")
+    @Size(max = 20, message = "Category name cannot exceed 20 characters")
+    private String name;@ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
 
-    @ManyToMany(mappedBy = "categories")
     @Builder.Default
     private Set<Post> posts = new HashSet<>();
 }
