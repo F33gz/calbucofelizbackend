@@ -2,6 +2,7 @@ package cl.metspherical.calbucofelizbackend.controller;
 
 import cl.metspherical.calbucofelizbackend.dto.CreateCommentRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
+import cl.metspherical.calbucofelizbackend.dto.PostCommentsResponseDTO;
 import cl.metspherical.calbucofelizbackend.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,10 @@ public class PostController {
                         .contentType(MediaType.parseMediaType(image.getContentType()))
                         .body(image.getImg()))
                 .orElse(ResponseEntity.notFound().build());
+    }    @GetMapping("/{id}/comments")
+    public ResponseEntity<PostCommentsResponseDTO> getPostComments(@PathVariable UUID id) {
+        PostCommentsResponseDTO comments = postService.getCommentsByPostId(id);
+        return ResponseEntity.ok(comments);
     }
 
     @PostMapping("/{postId}/comments/create")

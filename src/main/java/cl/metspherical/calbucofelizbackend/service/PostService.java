@@ -248,4 +248,29 @@ public class PostService {
         Comment savedComment = commentRepository.save(comment);
         return savedComment.getId();
     }
+
+    /**
+     * Gets all comments for a specific post
+     *
+     * @param postId ID of the post to get comments for
+     * @return PostCommentsResponseDTO containing comment information
+     */
+    public PostCommentsResponseDTO getCommentsByPostId(UUID postId) {
+        // 1. Validate post exists
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Get comments and map to DTOs
+        List<CommentDTO> comments = post.getComments().stream()
+                .map(comment -> new CommentDTO(
+                        comment.getId(),
+                        comment.getUser().getUsername(),
+                        comment.getContent(),
+                        comment.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+
+        // 3. Return wrapped in response DTO
+        return new PostCommentsResponseDTO(comments);
+    }
 }
