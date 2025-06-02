@@ -297,4 +297,19 @@ public class PostService {
         // 4. Delete the comment
         commentRepository.delete(comment);
     }
+
+    /**
+     * Deletes a post and all its associated data
+     *
+     * @param postId ID of the post to delete
+     * @throws RuntimeException if post not found
+     */
+    public void deletePost(UUID postId) {
+        // 1. Validate post exists
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Delete the post (cascade will handle comments, images, and category relationships)
+        postRepository.delete(post);
+    }
 }
