@@ -40,11 +40,12 @@ public class PostController {
             }
         }
 
-        CreatePostRequestDTO request = new CreatePostRequestDTO();
-        request.setUsername(username);
-        request.setContent(content);
-        request.setCategoryNames(categoryNames);
-        request.setImages(base64Images);
+        CreatePostRequestDTO request = new CreatePostRequestDTO(
+                username,
+                content,
+                categoryNames,
+                base64Images
+        );
 
         UUID postId = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED)

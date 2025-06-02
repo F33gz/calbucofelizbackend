@@ -33,24 +33,24 @@ public class PostService {
      */
     public UUID createPost(CreatePostRequestDTO request) {
         // 1. Validate and get user
-        User author = userRepository.findByUsername(request.getUsername())
+        User author = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 2. Create base post
         Post post = Post.builder()
-                .content(sanitizeContent(request.getContent()))
+                .content(sanitizeContent(request.content()))
                 .author(author)
                 .build();
 
         // 3. Process categories with find-or-create logic
-        if (request.getCategoryNames() != null && !request.getCategoryNames().isEmpty()) {
-            Set<Category> categories = processCategories(request.getCategoryNames());
+        if (request.categoryNames() != null && !request.categoryNames().isEmpty()) {
+            Set<Category> categories = processCategories(request.categoryNames());
             categories.forEach(post::addCategory);
         }
 
         // 4. Process images (directly as byte[])
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            processImages(request.getImages(), post);
+        if (request.images() != null && !request.images().isEmpty()) {
+            processImages(request.images(), post);
         }
 
         // 5. Save and return ID
@@ -186,30 +186,28 @@ public class PostService {
      * @return PostDetailDTO with post information
      */
     private PostDetailDTO mapPostToPostDetailDTO(Post post) {
-        AuthorDTO authorDTO = AuthorDTO.builder()
-                .username(post.getAuthor().getUsername())
-                .avatar(post.getAuthor().getAvatar())
-                .build();
+        AuthorDTO authorDTO = new AuthorDTO(
+                post.getAuthor().getUsername(),
+                post.getAuthor().getAvatar()
+        );
 
         List<PostImageDTO> imageDTOs = post.getImages().stream()
-                .map(image -> PostImageDTO.builder()
-                        .url(buildImageUrl(image.getId()))
-                        .build())
+                .map(image -> new PostImageDTO(
+                        buildImageUrl(image.getId())))
                 .collect(Collectors.toList());
 
         List<CategoryDTO> categoryDTOs = post.getCategories().stream()
-                .map(category -> CategoryDTO.builder()
-                        .name(category.getName())
-                        .build())
+                .map(category -> new CategoryDTO(
+                        category.getName()))
                 .collect(Collectors.toList());
 
-        return PostDetailDTO.builder()
-                .content(post.getContent())
-                .createdAt(post.getCreatedAt())
-                .author(authorDTO)
-                .images(imageDTOs)
-                .categories(categoryDTOs)
-                .build();
+        return new PostDetailDTO(
+                post.getContent(),
+                post.getCreatedAt(),
+                authorDTO,
+                imageDTOs,
+                categoryDTOs
+        );
     }
 
     /**
