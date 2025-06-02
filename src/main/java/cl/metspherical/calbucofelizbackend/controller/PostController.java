@@ -82,4 +82,13 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("commentId", commentId));
     }
+
+    @DeleteMapping("/{postId}/comment/{id}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable UUID postId,
+            @PathVariable UUID id) {
+        
+        postService.deleteComment(postId, id);
+        return ResponseEntity.noContent().build();
+    }
 }

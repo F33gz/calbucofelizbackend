@@ -272,5 +272,29 @@ public class PostService {
 
         // 3. Return wrapped in response DTO
         return new PostCommentsResponseDTO(comments);
+    }    /**
+     * Deletes a comment from a post
+     *
+     * @param postId ID of the post containing the comment
+     * @param commentId ID of the comment to delete
+     * @throws RuntimeException if post or comment not found, or comment doesn't belong to the post
+     */
+    public void deleteComment(UUID postId, UUID commentId) {
+        // 1. Validate post exists
+        if (!postRepository.existsById(postId)) {
+            throw new RuntimeException("Post not found");
+        }
+
+        // 2. Validate comment exists
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        // 3. Validate comment belongs to the post
+        if (!comment.getPost().getId().equals(postId)) {
+            throw new RuntimeException("Comment does not belong to the specified post");
+        }
+
+        // 4. Delete the comment
+        commentRepository.delete(comment);
     }
 }
