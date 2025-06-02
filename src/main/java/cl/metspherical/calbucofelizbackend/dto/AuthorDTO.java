@@ -1,7 +1,11 @@
 package cl.metspherical.calbucofelizbackend.dto;
 
+import java.util.List;
+
 public record AuthorDTO (
     String username,
-    String avatar){
+    String avatar,
+    List<String> roles
+) {
 }
 

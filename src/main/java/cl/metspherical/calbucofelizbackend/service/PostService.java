@@ -187,11 +187,11 @@ public class PostService {
      * 
      * @param post Post entity to convert
      * @return PostDetailDTO with post information
-     */
-    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
+     */    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
         AuthorDTO authorDTO = new AuthorDTO(
                 post.getAuthor().getUsername(),
-                post.getAuthor().getAvatar()
+                post.getAuthor().getAvatar(),
+                post.getAuthor().getRoles()
         );
 
         List<PostImageDTO> imageDTOs = post.getImages().stream()
