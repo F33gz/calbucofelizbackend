@@ -6,7 +6,7 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "post_images")
+@Table(name = "post_image")
 @Getter
 @Setter
 @ToString(exclude = "post")
@@ -18,7 +18,7 @@ public class PostImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Setter(AccessLevel.NONE)
+    @Column(columnDefinition = "UUID")
     private UUID id;
 
     @Lob
