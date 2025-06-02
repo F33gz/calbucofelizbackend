@@ -1,5 +1,6 @@
 package cl.metspherical.calbucofelizbackend.controller;
 
+import cl.metspherical.calbucofelizbackend.dto.CreateCommentRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.service.PostService;
@@ -65,5 +66,15 @@ public class PostController {
                         .contentType(MediaType.parseMediaType(image.getContentType()))
                         .body(image.getImg()))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{postId}/comments/create")
+    public ResponseEntity<Map<String, UUID>> createComment(
+            @PathVariable UUID postId,
+            @RequestBody CreateCommentRequestDTO request) {
+
+        UUID commentId = postService.createComment(postId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("commentId", commentId));
     }
 }

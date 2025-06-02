@@ -3,10 +3,12 @@ package cl.metspherical.calbucofelizbackend.service;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.*;
 import cl.metspherical.calbucofelizbackend.model.Category;
+import cl.metspherical.calbucofelizbackend.model.Comment;
 import cl.metspherical.calbucofelizbackend.model.Post;
 import cl.metspherical.calbucofelizbackend.model.PostImage;
 import cl.metspherical.calbucofelizbackend.model.User;
 import cl.metspherical.calbucofelizbackend.repository.CategoryRepository;
+import cl.metspherical.calbucofelizbackend.repository.CommentRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostRepository;
 import cl.metspherical.calbucofelizbackend.repository.UserRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostImageRepository;
@@ -24,6 +26,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final PostImageRepository postImageRepository;
+    private final CommentRepository commentRepository;
 
     /**
      * Creates a new post in the system
@@ -218,5 +221,31 @@ public class PostService {
      */
     private String buildImageUrl(UUID imageId) {
         return "http://localhost:8080/api/posts/image/" + imageId.toString();
+    }
+
+    /**
+     * Creates a new comment for a post
+     *
+     * @param postId ID of the post to comment on
+     * @param request DTO containing comment creation data
+     * @return UUID of the created comment
+     */
+    public UUID createComment(UUID postId, CreateCommentRequestDTO request) {
+        // 1. Validate and get post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));        // 2. Validate and get user
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Create comment
+        Comment comment = Comment.builder()
+                .content(sanitizeContent(request.content()))
+                .post(post)
+                .user(user)
+                .build();
+
+        // 4. Save and return ID
+        Comment savedComment = commentRepository.save(comment);
+        return savedComment.getId();
     }
 }
