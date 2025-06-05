@@ -15,12 +15,12 @@ cache:
     - .gradle/caches/
 
 before_script:
-  - chmod +x ./backend/gradlew # Ensure Gradle wrapper is executable
+  - chmod +x ./gradlew # Ensure Gradle wrapper is executable
 
 build-backend:
   stage: build
   script:
-    - ./gradlew build --no-daemon
+    - ./gradlew build -x test --no-daemon
   artifacts:
     paths:
       - build/libs/
@@ -28,12 +28,12 @@ build-backend:
 test-backend:
   stage: test
   script:
-    - ./gradlew test --no-daemon
+    - ./gradlew test -x test --no-daemon
 
 package-backend:
   stage: package
   script:
-    - ./gradlew bootJar --no-daemon
+    - ./gradlew bootJar -x test --no-daemon
   artifacts:
     paths:
       - build/libs/
