@@ -29,15 +29,15 @@ public class User {
     private UUID id;
 
     @Column(nullable = false, unique = true)
-    private Integer rut;
+    private String rut;
 
-    @Column(length = 100, nullable = false, unique = true)
+    @Column(length = 100, unique = true)
     private String email;
 
     @Column(nullable = false, unique = true)
     private Integer number;
 
-    @Column(length = 30, nullable = false)
+    @Column(length = 30)
     private String username;
 
     @Lob
@@ -47,7 +47,6 @@ public class User {
     @Column(length = 50, nullable = false)
     private String names;
 
-    @Column(name = "last_names", nullable = false)
     private String lastNames;
 
     @Column(nullable = false)
@@ -65,6 +64,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+    @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
