@@ -1,6 +1,8 @@
 package cl.metspherical.calbucofelizbackend.controller;
 
+import cl.metspherical.calbucofelizbackend.dto.CreateCommentRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
+import cl.metspherical.calbucofelizbackend.dto.PostCommentsResponseDTO;
 import cl.metspherical.calbucofelizbackend.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -40,11 +42,12 @@ public class PostController {
             }
         }
 
-        CreatePostRequestDTO request = new CreatePostRequestDTO();
-        request.setUsername(username);
-        request.setContent(content);
-        request.setCategoryNames(categoryNames);
-        request.setImages(base64Images);
+        CreatePostRequestDTO request = new CreatePostRequestDTO(
+                username,
+                content,
+                categoryNames,
+                base64Images
+        );
 
         UUID postId = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -64,5 +67,34 @@ public class PostController {
                         .contentType(MediaType.parseMediaType(image.getContentType()))
                         .body(image.getImg()))
                 .orElse(ResponseEntity.notFound().build());
+    }    @GetMapping("/{id}/comments")
+    public ResponseEntity<PostCommentsResponseDTO> getPostComments(@PathVariable UUID id) {
+        PostCommentsResponseDTO comments = postService.getCommentsByPostId(id);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PostMapping("/{postId}/comments/create")
+    public ResponseEntity<Map<String, UUID>> createComment(
+            @PathVariable UUID postId,
+            @RequestBody CreateCommentRequestDTO request) {
+
+        UUID commentId = postService.createComment(postId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("commentId", commentId));
+    }
+
+    @DeleteMapping("/{postId}/comment/{id}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable UUID postId,
+            @PathVariable UUID id) {
+        
+        postService.deleteComment(postId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
+        postService.deletePost(id);
+        return ResponseEntity.noContent().build();
     }
 }
