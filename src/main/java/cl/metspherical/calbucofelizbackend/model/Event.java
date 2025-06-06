@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,20 +33,19 @@ public class Event {
     @Column(length = 200, nullable = false)
     @NotBlank(message = "Event address cannot be blank")
     @Size(max = 200, message = "Event address cannot exceed 200 characters")
-    private String address;@Column(name = "init_time", columnDefinition = "timestamp with time zone")
+    private String address;
+
+    @Column(name = "init_time", columnDefinition = "timestamp with time zone")
     private LocalDateTime init;
 
     @Column(name = "ending_time", columnDefinition = "timestamp with time zone")
     private LocalDateTime ending;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "timestamp with time zone")
-    private LocalDateTime createdAt;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_event_created_by"))
-    private User createdBy;    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private User createdBy;
 
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<EventAssistant> eventAssistants = new HashSet<>();
 }
