@@ -6,14 +6,17 @@ import cl.metspherical.calbucofelizbackend.model.Category;
 import cl.metspherical.calbucofelizbackend.model.Comment;
 import cl.metspherical.calbucofelizbackend.model.Post;
 import cl.metspherical.calbucofelizbackend.model.PostImage;
+import cl.metspherical.calbucofelizbackend.model.PostLike;
 import cl.metspherical.calbucofelizbackend.model.User;
 import cl.metspherical.calbucofelizbackend.repository.CategoryRepository;
 import cl.metspherical.calbucofelizbackend.repository.CommentRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostRepository;
 import cl.metspherical.calbucofelizbackend.repository.UserRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostImageRepository;
+import cl.metspherical.calbucofelizbackend.repository.PostLikeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,13 +30,14 @@ public class PostService {
     private final CategoryRepository categoryRepository;
     private final PostImageRepository postImageRepository;
     private final CommentRepository commentRepository;
-
+    private final PostLikeRepository postLikeRepository;
     /**
      * Creates a new post in the system
      *
      * @param request DTO containing post creation data
      * @return UUID of the created post
      */
+    @Transactional
     public UUID createPost(CreatePostRequestDTO request) {
         // 1. Validate and get user
         User author = userRepository.findByUsername(request.username())
@@ -119,7 +123,7 @@ public class PostService {
 
     /**
      * Sanitizes post content
-     * 
+     *
      * @param content Content to sanitize
      * @return Sanitized content or null if empty
      */
@@ -129,7 +133,7 @@ public class PostService {
 
     /**
      * Decodes a base64 encoded image
-     * 
+     *
      * @param base64Image Base64 encoded image string
      * @return Decoded image as byte array
      */
@@ -140,7 +144,7 @@ public class PostService {
 
     /**
      * Detects the content type of an image based on its bytes
-     * 
+     *
      * @param imageBytes Image bytes to analyze
      * @return MIME type of the image
      */
@@ -162,7 +166,7 @@ public class PostService {
 
     /**
      * Gets a post by its ID with all related details
-     * 
+     *
      * @param id ID of the post to retrieve
      * @return PostDetailDTO containing post information
      */
@@ -174,7 +178,7 @@ public class PostService {
 
     /**
      * Gets a post image by its ID
-     * 
+     *
      * @param imageId ID of the image to retrieve
      * @return Optional containing the PostImage if found
      */
@@ -184,7 +188,7 @@ public class PostService {
 
     /**
      * Maps a Post entity to its DTO representation
-     * 
+     *
      * @param post Post entity to convert
      * @return PostDetailDTO with post information
      */    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
@@ -233,6 +237,7 @@ public class PostService {
      * @param request DTO containing comment creation data
      * @return UUID of the created comment
      */
+    @Transactional
     public UUID createComment(UUID postId, CreateCommentRequestDTO request) {
         // 1. Validate and get post
         Post post = postRepository.findById(postId)
@@ -275,13 +280,15 @@ public class PostService {
 
         // 3. Return wrapped in response DTO
         return new PostCommentsResponseDTO(comments);
-    }    /**
+    }
+    /**
      * Deletes a comment from a post
      *
      * @param postId ID of the post containing the comment
      * @param commentId ID of the comment to delete
      * @throws RuntimeException if post or comment not found, or comment doesn't belong to the post
      */
+    @Transactional
     public void deleteComment(UUID postId, UUID commentId) {
         // 1. Validate post exists
         if (!postRepository.existsById(postId)) {
@@ -307,6 +314,7 @@ public class PostService {
      * @param postId ID of the post to delete
      * @throws RuntimeException if post not found
      */
+    @Transactional
     public void deletePost(UUID postId) {
         // 1. Validate post exists
         Post post = postRepository.findById(postId)
@@ -314,5 +322,60 @@ public class PostService {
 
         // 2. Delete the post (cascade will handle comments, images, and category relationships)
         postRepository.delete(post);
+    }
+    /**
+     * Adds a like to a post
+     *
+     * @param postId ID of the post to like
+     * @param username Username of the user liking the post
+     * @throws RuntimeException if post or user not found, or if user already liked the post
+     */
+    @Transactional
+    public void likePost(UUID postId, String username) {
+        // 1. Validate and get post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Validate and get user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Check if user already liked the post
+        if (postLikeRepository.existsByPost_IdAndUser_Id(postId, user.getId())) {
+            throw new RuntimeException("User has already liked this post");
+        }
+
+        // 4. Create and save the like
+        PostLike postLike = PostLike.builder()
+                .post(post)
+                .user(user)
+                .build();
+
+        postLikeRepository.save(postLike);
+    }
+    /**
+     * Removes a like from a post
+     *
+     * @param postId ID of the post to unlike
+     * @param username Username of the user unliking the post
+     * @throws RuntimeException if post or user not found, or if user hasn't liked the post
+     */
+    @Transactional
+    public void unlikePost(UUID postId, String username) {
+        // 1. Validate and get post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Validate and get user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Check if user has liked the post
+        if (!postLikeRepository.existsByPost_IdAndUser_Id(postId, user.getId())) {
+            throw new RuntimeException("User has not liked this post");
+        }
+
+        // 4. Delete the like
+        postLikeRepository.deleteByPost_IdAndUser_Id(postId, user.getId());
     }
 }

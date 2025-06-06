@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +68,9 @@ public class PostController {
                         .contentType(MediaType.parseMediaType(image.getContentType()))
                         .body(image.getImg()))
                 .orElse(ResponseEntity.notFound().build());
-    }    @GetMapping("/{id}/comments")
+    }
+
+    @GetMapping("/{id}/comments")
     public ResponseEntity<PostCommentsResponseDTO> getPostComments(@PathVariable UUID id) {
         PostCommentsResponseDTO comments = postService.getCommentsByPostId(id);
         return ResponseEntity.ok(comments);
@@ -96,5 +99,20 @@ public class PostController {
     public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
         postService.deletePost(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{post_id}/like")
+    public ResponseEntity<Map<String, Object>> likePost(@PathVariable UUID post_id, @RequestParam String username) {
+        postService.likePost(post_id, username);
+        Map<String, Object> response = new HashMap<>();
+        response.put("like", true);
+        response.put("status", "post liked successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{post_id}/like")
+    public ResponseEntity<Void> unlikePost(@PathVariable UUID post_id, @RequestParam String username) { 
+        postService.unlikePost(post_id, username);
+        return ResponseEntity.ok().build();
     }
 }
