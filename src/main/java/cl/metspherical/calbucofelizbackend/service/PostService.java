@@ -30,7 +30,7 @@ public class PostService {
 
     /**
      * Creates a new post in the system
-     * 
+     *
      * @param request DTO containing post creation data
      * @return UUID of the created post
      */
@@ -63,7 +63,7 @@ public class PostService {
 
     /**
      * Processes categories, creating new ones if they don't exist
-     * 
+     *
      * @param categoryNames Set of category names to process
      * @return Set of Category objects
      */
@@ -91,7 +91,7 @@ public class PostService {
 
     /**
      * Processes base64 encoded images and associates them with a post
-     * 
+     *
      * @param base64ImageList List of base64 encoded images
      * @param post Post to associate images with
      */
@@ -194,9 +194,9 @@ public class PostService {
                 post.getAuthor().getRoles()
         );
 
-        List<PostImageDTO> imageDTOs = post.getImages().stream()
-                .map(image -> new PostImageDTO(
-                        buildImageUrl(image.getId())))
+        List<String> images = post.getImages().stream()
+                .map(image ->
+                        buildImageUrl(image.getId()))
                 .collect(Collectors.toList());
 
         List<CategoryDTO> categoryDTOs = post.getCategories().stream()
@@ -205,17 +205,20 @@ public class PostService {
                 .collect(Collectors.toList());
 
         return new PostDetailDTO(
+                post.getId(),
                 post.getContent(),
                 post.getCreatedAt(),
                 authorDTO,
-                imageDTOs,
-                categoryDTOs
+                images,
+                categoryDTOs,
+                post.getLikes().size(),
+                post.getComments().size()
         );
     }
 
     /**
      * Builds a URL for accessing a post image
-     * 
+     *
      * @param imageId ID of the image
      * @return Complete URL to access the image
      */
