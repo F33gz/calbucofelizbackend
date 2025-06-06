@@ -41,7 +41,6 @@ public class User {
     private String username;
 
     @Lob
-    @Column(columnDefinition = "BYTEA")
     private byte[] avatar;
 
     @Column(length = 50, nullable = false)
