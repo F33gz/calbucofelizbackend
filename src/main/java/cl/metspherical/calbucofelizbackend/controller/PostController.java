@@ -1,6 +1,8 @@
 package cl.metspherical.calbucofelizbackend.controller;
 
+import cl.metspherical.calbucofelizbackend.dto.CreateCommentRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
+import cl.metspherical.calbucofelizbackend.dto.PostCommentsResponseDTO;
 import cl.metspherical.calbucofelizbackend.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,11 +43,12 @@ public class PostController {
             }
         }
 
-        CreatePostRequestDTO request = new CreatePostRequestDTO();
-        request.setUsername(username);
-        request.setContent(content);
-        request.setCategoryNames(categoryNames);
-        request.setImages(base64Images);
+        CreatePostRequestDTO request = new CreatePostRequestDTO(
+                username,
+                content,
+                categoryNames,
+                base64Images
+        );
 
         UUID postId = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -64,5 +68,51 @@ public class PostController {
                         .contentType(MediaType.parseMediaType(image.getContentType()))
                         .body(image.getImg()))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<PostCommentsResponseDTO> getPostComments(@PathVariable UUID id) {
+        PostCommentsResponseDTO comments = postService.getCommentsByPostId(id);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PostMapping("/{postId}/comments/create")
+    public ResponseEntity<Map<String, UUID>> createComment(
+            @PathVariable UUID postId,
+            @RequestBody CreateCommentRequestDTO request) {
+
+        UUID commentId = postService.createComment(postId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("commentId", commentId));
+    }
+
+    @DeleteMapping("/{postId}/comment/{id}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable UUID postId,
+            @PathVariable UUID id) {
+        
+        postService.deleteComment(postId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
+        postService.deletePost(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{post_id}/like")
+    public ResponseEntity<Map<String, Object>> likePost(@PathVariable UUID post_id, @RequestParam String username) {
+        postService.likePost(post_id, username);
+        Map<String, Object> response = new HashMap<>();
+        response.put("like", true);
+        response.put("status", "post liked successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{post_id}/like")
+    public ResponseEntity<Void> unlikePost(@PathVariable UUID post_id, @RequestParam String username) { 
+        postService.unlikePost(post_id, username);
+        return ResponseEntity.ok().build();
     }
 }
