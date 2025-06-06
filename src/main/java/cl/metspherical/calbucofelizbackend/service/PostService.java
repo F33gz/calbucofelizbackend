@@ -3,15 +3,20 @@ package cl.metspherical.calbucofelizbackend.service;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.*;
 import cl.metspherical.calbucofelizbackend.model.Category;
+import cl.metspherical.calbucofelizbackend.model.Comment;
 import cl.metspherical.calbucofelizbackend.model.Post;
 import cl.metspherical.calbucofelizbackend.model.PostImage;
+import cl.metspherical.calbucofelizbackend.model.PostLike;
 import cl.metspherical.calbucofelizbackend.model.User;
 import cl.metspherical.calbucofelizbackend.repository.CategoryRepository;
+import cl.metspherical.calbucofelizbackend.repository.CommentRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostRepository;
 import cl.metspherical.calbucofelizbackend.repository.UserRepository;
 import cl.metspherical.calbucofelizbackend.repository.PostImageRepository;
+import cl.metspherical.calbucofelizbackend.repository.PostLikeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,33 +29,35 @@ public class PostService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final PostImageRepository postImageRepository;
-
+    private final CommentRepository commentRepository;
+    private final PostLikeRepository postLikeRepository;
     /**
      * Creates a new post in the system
-     * 
+     *
      * @param request DTO containing post creation data
      * @return UUID of the created post
      */
+    @Transactional
     public UUID createPost(CreatePostRequestDTO request) {
         // 1. Validate and get user
-        User author = userRepository.findByUsername(request.getUsername())
+        User author = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 2. Create base post
         Post post = Post.builder()
-                .content(sanitizeContent(request.getContent()))
+                .content(sanitizeContent(request.content()))
                 .author(author)
                 .build();
 
         // 3. Process categories with find-or-create logic
-        if (request.getCategoryNames() != null && !request.getCategoryNames().isEmpty()) {
-            Set<Category> categories = processCategories(request.getCategoryNames());
+        if (request.categoryNames() != null && !request.categoryNames().isEmpty()) {
+            Set<Category> categories = processCategories(request.categoryNames());
             categories.forEach(post::addCategory);
         }
 
         // 4. Process images (directly as byte[])
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            processImages(request.getImages(), post);
+        if (request.images() != null && !request.images().isEmpty()) {
+            processImages(request.images(), post);
         }
 
         // 5. Save and return ID
@@ -60,7 +67,7 @@ public class PostService {
 
     /**
      * Processes categories, creating new ones if they don't exist
-     * 
+     *
      * @param categoryNames Set of category names to process
      * @return Set of Category objects
      */
@@ -88,7 +95,7 @@ public class PostService {
 
     /**
      * Processes base64 encoded images and associates them with a post
-     * 
+     *
      * @param base64ImageList List of base64 encoded images
      * @param post Post to associate images with
      */
@@ -116,7 +123,7 @@ public class PostService {
 
     /**
      * Sanitizes post content
-     * 
+     *
      * @param content Content to sanitize
      * @return Sanitized content or null if empty
      */
@@ -126,7 +133,7 @@ public class PostService {
 
     /**
      * Decodes a base64 encoded image
-     * 
+     *
      * @param base64Image Base64 encoded image string
      * @return Decoded image as byte array
      */
@@ -137,7 +144,7 @@ public class PostService {
 
     /**
      * Detects the content type of an image based on its bytes
-     * 
+     *
      * @param imageBytes Image bytes to analyze
      * @return MIME type of the image
      */
@@ -159,7 +166,7 @@ public class PostService {
 
     /**
      * Gets a post by its ID with all related details
-     * 
+     *
      * @param id ID of the post to retrieve
      * @return PostDetailDTO containing post information
      */
@@ -171,7 +178,7 @@ public class PostService {
 
     /**
      * Gets a post image by its ID
-     * 
+     *
      * @param imageId ID of the image to retrieve
      * @return Optional containing the PostImage if found
      */
@@ -181,44 +188,194 @@ public class PostService {
 
     /**
      * Maps a Post entity to its DTO representation
-     * 
+     *
      * @param post Post entity to convert
      * @return PostDetailDTO with post information
-     */
-    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
-        AuthorDTO authorDTO = AuthorDTO.builder()
-                .username(post.getAuthor().getUsername())
-                .avatar(post.getAuthor().getAvatar())
-                .build();
+     */    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
+        AuthorDTO authorDTO = new AuthorDTO(
+                post.getAuthor().getUsername(),
+                post.getAuthor().getAvatar(),
+                post.getAuthor().getRoles()
+        );
 
-        List<PostImageDTO> imageDTOs = post.getImages().stream()
-                .map(image -> PostImageDTO.builder()
-                        .url(buildImageUrl(image.getId()))
-                        .build())
+        List<String> images = post.getImages().stream()
+                .map(image ->
+                        buildImageUrl(image.getId()))
                 .collect(Collectors.toList());
 
         List<CategoryDTO> categoryDTOs = post.getCategories().stream()
-                .map(category -> CategoryDTO.builder()
-                        .name(category.getName())
-                        .build())
+                .map(category -> new CategoryDTO(
+                        category.getName()))
                 .collect(Collectors.toList());
 
-        return PostDetailDTO.builder()
-                .content(post.getContent())
-                .createdAt(post.getCreatedAt())
-                .author(authorDTO)
-                .images(imageDTOs)
-                .categories(categoryDTOs)
-                .build();
+        return new PostDetailDTO(
+                post.getId(),
+                post.getContent(),
+                post.getCreatedAt(),
+                authorDTO,
+                images,
+                categoryDTOs,
+                post.getLikes().size(),
+                post.getComments().size()
+        );
     }
 
     /**
      * Builds a URL for accessing a post image
-     * 
+     *
      * @param imageId ID of the image
      * @return Complete URL to access the image
      */
     private String buildImageUrl(UUID imageId) {
         return "http://localhost:8080/api/posts/image/" + imageId.toString();
+    }
+
+    /**
+     * Creates a new comment for a post
+     *
+     * @param postId ID of the post to comment on
+     * @param request DTO containing comment creation data
+     * @return UUID of the created comment
+     */
+    @Transactional
+    public UUID createComment(UUID postId, CreateCommentRequestDTO request) {
+        // 1. Validate and get post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));        // 2. Validate and get user
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Create comment
+        Comment comment = Comment.builder()
+                .content(sanitizeContent(request.content()))
+                .post(post)
+                .user(user)
+                .build();
+
+        // 4. Save and return ID
+        Comment savedComment = commentRepository.save(comment);
+        return savedComment.getId();
+    }
+
+    /**
+     * Gets all comments for a specific post
+     *
+     * @param postId ID of the post to get comments for
+     * @return PostCommentsResponseDTO containing comment information
+     */
+    public PostCommentsResponseDTO getCommentsByPostId(UUID postId) {
+        // 1. Validate post exists
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Get comments and map to DTOs
+        List<CommentDTO> comments = post.getComments().stream()
+                .map(comment -> new CommentDTO(
+                        comment.getId(),
+                        comment.getUser().getUsername(),
+                        comment.getContent(),
+                        comment.getCreatedAt()
+                ))
+                .collect(Collectors.toList());
+
+        // 3. Return wrapped in response DTO
+        return new PostCommentsResponseDTO(comments);
+    }
+    /**
+     * Deletes a comment from a post
+     *
+     * @param postId ID of the post containing the comment
+     * @param commentId ID of the comment to delete
+     * @throws RuntimeException if post or comment not found, or comment doesn't belong to the post
+     */
+    @Transactional
+    public void deleteComment(UUID postId, UUID commentId) {
+        // 1. Validate post exists
+        if (!postRepository.existsById(postId)) {
+            throw new RuntimeException("Post not found");
+        }
+
+        // 2. Validate comment exists
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        // 3. Validate comment belongs to the post
+        if (!comment.getPost().getId().equals(postId)) {
+            throw new RuntimeException("Comment does not belong to the specified post");
+        }
+
+        // 4. Delete the comment
+        commentRepository.delete(comment);
+    }
+
+    /**
+     * Deletes a post and all its associated data
+     *
+     * @param postId ID of the post to delete
+     * @throws RuntimeException if post not found
+     */
+    @Transactional
+    public void deletePost(UUID postId) {
+        // 1. Validate post exists
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Delete the post (cascade will handle comments, images, and category relationships)
+        postRepository.delete(post);
+    }
+    /**
+     * Adds a like to a post
+     *
+     * @param postId ID of the post to like
+     * @param username Username of the user liking the post
+     * @throws RuntimeException if post or user not found, or if user already liked the post
+     */
+    @Transactional
+    public void likePost(UUID postId, String username) {
+        // 1. Validate and get post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Validate and get user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Check if user already liked the post
+        if (postLikeRepository.existsByPost_IdAndUser_Id(postId, user.getId())) {
+            throw new RuntimeException("User has already liked this post");
+        }
+
+        // 4. Create and save the like
+        PostLike postLike = PostLike.builder()
+                .post(post)
+                .user(user)
+                .build();
+
+        postLikeRepository.save(postLike);
+    }
+    /**
+     * Removes a like from a post
+     *
+     * @param postId ID of the post to unlike
+     * @param username Username of the user unliking the post
+     * @throws RuntimeException if post or user not found, or if user hasn't liked the post
+     */
+    @Transactional
+    public void unlikePost(UUID postId, String username) {
+        // 1. Validate and get post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // 2. Validate and get user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Check if user has liked the post
+        if (!postLikeRepository.existsByPost_IdAndUser_Id(postId, user.getId())) {
+            throw new RuntimeException("User has not liked this post");
+        }
+
+        // 4. Delete the like
+        postLikeRepository.deleteByPost_IdAndUser_Id(postId, user.getId());
     }
 }
