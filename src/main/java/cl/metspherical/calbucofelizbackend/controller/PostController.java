@@ -111,8 +111,9 @@ public class PostController {
     }
 
     @PostMapping("/{post_id}/like")
-    public ResponseEntity<Map<String, Object>> likePost(@PathVariable UUID post_id, @RequestParam String username) {
-        postService.likePost(post_id, username);
+    public ResponseEntity<Map<String, Object>> likePost(@PathVariable UUID post_id) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        postService.likePost(post_id, userId);
         Map<String, Object> response = new HashMap<>();
         response.put("like", true);
         response.put("status", "post liked successfully");
@@ -120,8 +121,9 @@ public class PostController {
     }
 
     @DeleteMapping("/{post_id}/like")
-    public ResponseEntity<Void> unlikePost(@PathVariable UUID post_id, @RequestParam String username) { 
-        postService.unlikePost(post_id, username);
+    public ResponseEntity<Void> unlikePost(@PathVariable UUID post_id) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        postService.unlikePost(post_id, userId);
         return ResponseEntity.ok().build();
     }
 }

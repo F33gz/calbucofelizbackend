@@ -324,25 +324,21 @@ public class PostService {
      * Adds a like to a post
      *
      * @param postId ID of the post to like
-     * @param username Username of the user liking the post
+     * @param userId ID of the user liking the post
      * @throws RuntimeException if post or user not found, or if user already liked the post
      */
     @Transactional
-    public void likePost(UUID postId, String username) {
-        // 1. Validate and get post
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
-
-        // 2. Validate and get user
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // 3. Check if user already liked the post
-        if (postLikeRepository.existsByPost_IdAndUser_Id(postId, user.getId())) {
+    public void likePost(UUID postId, UUID userId) {
+        // 1. Check if user already liked the post (más eficiente)
+        if (postLikeRepository.existsByPost_IdAndUser_Id(postId, userId)) {
             throw new RuntimeException("User has already liked this post");
         }
 
-        // 4. Create and save the like
+        // 2. Usar referencias lazy (sin consultas innecesarias)
+        Post post = postRepository.getReferenceById(postId);
+        User user = userRepository.getReferenceById(userId);
+
+        // 3. Create and save the like
         PostLike postLike = PostLike.builder()
                 .post(post)
                 .user(user)
@@ -354,25 +350,17 @@ public class PostService {
      * Removes a like from a post
      *
      * @param postId ID of the post to unlike
-     * @param username Username of the user unliking the post
+     * @param userId ID of the user unliking the post
      * @throws RuntimeException if post or user not found, or if user hasn't liked the post
      */
     @Transactional
-    public void unlikePost(UUID postId, String username) {
-        // 1. Validate and get post
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
-
-        // 2. Validate and get user
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // 3. Check if user has liked the post
-        if (!postLikeRepository.existsByPost_IdAndUser_Id(postId, user.getId())) {
+    public void unlikePost(UUID postId, UUID userId) {
+        // 1. Check if user has liked the post
+        if (!postLikeRepository.existsByPost_IdAndUser_Id(postId, userId)) {
             throw new RuntimeException("User has not liked this post");
         }
 
-        // 4. Delete the like
-        postLikeRepository.deleteByPost_IdAndUser_Id(postId, user.getId());
+        // 2. Delete the like directly (más eficiente)
+        postLikeRepository.deleteByPost_IdAndUser_Id(postId, userId);
     }
 }
