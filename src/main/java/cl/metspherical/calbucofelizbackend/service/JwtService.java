@@ -9,6 +9,8 @@ import io.jsonwebtoken.security.Keys;
 import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 import javax.crypto.SecretKey;
 
@@ -19,16 +21,16 @@ import javax.crypto.SecretKey;
 @Service
 public class JwtService {
 
-    @Value("YF3RcBDs/gLgpTlaNRb10Syx?Y!Is3mZ8rS7Th!OvMDhQDKmRxvSFM4ea/H!JLbO")
+    @Value("${jwt.secret}")
     private String jwtSecret;
     
-    @Value("900000")
+    @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    @Value("604800000")
+    @Value("${jwt.refresh-expiration}")
     private long jwtRefreshExpiration;
 
-    @Value("Calbucofeliz")
+    @Value("${jwt.issuer}")
     private String jwtIssuer;
 
     /**
@@ -51,13 +53,36 @@ public class JwtService {
     }
 
     /**
-     * Extracts the username from a JWT token (alias for extractRut)
-     * 
+     * Extracts the user ID from a JWT token
+     *
+     * @param token JWT token string
+     * @return User ID as UUID
+     */
+    public UUID extractUserId(String token) {
+        String userIdString = extractClaim(token, claims -> claims.get("userId", String.class));
+        return UUID.fromString(userIdString);
+    }
+
+    /**
+     * Extracts the username from a JWT token
+     *
      * @param token JWT token string
      * @return Username as string
      */
     public String extractUsername(String token) {
-        return extractRut(token);
+        return extractClaim(token, claims -> claims.get("username", String.class));
+    }
+
+    /**
+     * Extracts the roles from a JWT token
+     *
+     * @param token JWT token string
+     * @return List of roles, empty list if no roles found
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        List<String> roles = extractClaim(token, claims -> (List<String>) claims.get("roles"));
+        return roles != null ? roles : List.of();
     }
 
     /**
@@ -119,7 +144,7 @@ public class JwtService {
         extraClaims.put("username", user.getUsername());
         extraClaims.put("roles", user.getRoles());
         
-        return createToken(extraClaims, user.getRut().toString(), jwtExpiration);
+        return createToken(extraClaims, user.getRut(), jwtExpiration);
     }
 
     /**
@@ -133,7 +158,7 @@ public class JwtService {
         extraClaims.put("userId", user.getId().toString());
         extraClaims.put("type", "refresh");
         
-        return createToken(extraClaims, user.getRut().toString(), jwtRefreshExpiration);
+        return createToken(extraClaims, user.getRut(), jwtRefreshExpiration);
     }
 
     /**
@@ -166,7 +191,8 @@ public class JwtService {
      */
     public boolean isTokenValid(String token) {
         try {
-            return !isTokenExpired(token);
+            extractAllClaims(token);
+            return true;
         } catch (Exception e) {
             return false;
         }
@@ -181,15 +207,7 @@ public class JwtService {
     public boolean isRefreshTokenValid(String token) {
         try {
             Claims claims = extractAllClaims(token);
-
-            // Verify it's a refresh token
-            if (!"refresh".equals(claims.get("type"))) {
-                return false;
-            }
-
-            // Verify it hasn't expired
-            return !isTokenExpired(token);
-
+            return "refresh".equals(claims.get("type"));
         } catch (Exception e) {
             return false;
         }
