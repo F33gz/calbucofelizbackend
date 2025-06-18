@@ -190,7 +190,8 @@ public class PostService {
      *
      * @param post Post entity to convert
      * @return PostDetailDTO with post information
-     */    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
+     */
+    private PostDetailDTO mapPostToPostDetailDTO(Post post) {
         AuthorDTO authorDTO = new AuthorDTO(
                 post.getAuthor().getUsername(),
                 post.getAuthor().getAvatar(),
@@ -207,6 +208,10 @@ public class PostService {
                         category.getName()))
                 .collect(Collectors.toList());
 
+        // Use COUNT queries to avoid ConcurrentModificationException
+        long likesCount = postRepository.countLikesByPostId(post.getId());
+        long commentsCount = postRepository.countCommentsByPostId(post.getId());
+
         return new PostDetailDTO(
                 post.getId(),
                 post.getContent(),
@@ -214,8 +219,8 @@ public class PostService {
                 authorDTO,
                 images,
                 categoryDTOs,
-                post.getLikes().size(),
-                post.getComments().size()
+                (int) likesCount,
+                (int) commentsCount
         );
     }
 
@@ -262,11 +267,12 @@ public class PostService {
      */
     public PostCommentsResponseDTO getCommentsByPostId(UUID postId) {
         // 1. Validate post exists
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+        if (!postRepository.existsById(postId)) {
+            throw new RuntimeException("Post not found");
+        }
 
-        // 2. Get comments and map to DTOs
-        List<CommentDTO> comments = post.getComments().stream()
+        // 2. Get comments directly with optimized query
+        List<CommentDTO> comments = commentRepository.findByPostIdWithUser(postId).stream()
                 .map(comment -> new CommentDTO(
                         comment.getId(),
                         comment.getUser().getUsername(),
