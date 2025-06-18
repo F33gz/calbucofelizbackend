@@ -239,19 +239,17 @@ public class PostService {
     @Transactional
     public UUID createComment(UUID postId, CreateCommentRequestDTO request) {
         // 1. Validate and get post
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));        // 2. Validate and get user
-        User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Post post = postRepository.getReferenceById(postId);
+        User user = userRepository.getReferenceById(request.authorId());
 
-        // 3. Create comment
+        // 2. Create comment
         Comment comment = Comment.builder()
                 .content(sanitizeContent(request.content()))
                 .post(post)
                 .user(user)
                 .build();
 
-        // 4. Save and return ID
+        // 3. Save and return ID
         Comment savedComment = commentRepository.save(comment);
         return savedComment.getId();
     }

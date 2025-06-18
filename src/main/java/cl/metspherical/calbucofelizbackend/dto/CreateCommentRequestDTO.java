@@ -1,7 +1,9 @@
 package cl.metspherical.calbucofelizbackend.dto;
 
+import java.util.UUID;
+
 public record CreateCommentRequestDTO(
     String content,
-    String username
+    UUID authorId
 ) {
 }

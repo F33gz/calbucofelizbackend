@@ -82,7 +82,13 @@ public class PostController {
     @PostMapping("/{postId}/comments/create")
     public ResponseEntity<Map<String, UUID>> createComment(
             @PathVariable UUID postId,
-            @RequestBody CreateCommentRequestDTO request) {
+            @RequestBody CreateCommentInputDTO input) {
+
+        UUID authorId = SecurityUtils.getCurrentUserId();
+        CreateCommentRequestDTO request = new CreateCommentRequestDTO(
+            input.content(),
+            authorId
+        );
 
         UUID commentId = postService.createComment(postId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
