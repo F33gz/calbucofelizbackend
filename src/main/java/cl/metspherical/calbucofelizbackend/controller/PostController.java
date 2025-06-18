@@ -106,7 +106,8 @@ public class PostController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
-        postService.deletePost(id);
+        UUID userId = SecurityUtils.getCurrentUserId();
+        postService.deletePost(id, userId);
         return ResponseEntity.noContent().build();
     }
 

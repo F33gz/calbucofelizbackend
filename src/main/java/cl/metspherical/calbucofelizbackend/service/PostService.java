@@ -318,12 +318,16 @@ public class PostService {
      * @throws RuntimeException if post not found
      */
     @Transactional
-    public void deletePost(UUID postId) {
+    public void deletePost(UUID postId, UUID userId) {
         // 1. Validate post exists
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        // 2. Delete the post (cascade will handle comments, images, and category relationships)
+        // 2. Validate user is the author of the post
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new RuntimeException("User is not the author of this post");
+        }
+        // 3. Delete the post (cascade will handle comments, images, and category relationships)
         postRepository.delete(post);
     }
     /**
