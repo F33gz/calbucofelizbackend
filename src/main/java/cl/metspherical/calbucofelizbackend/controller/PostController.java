@@ -1,10 +1,12 @@
 package cl.metspherical.calbucofelizbackend.controller;
 
+import cl.metspherical.calbucofelizbackend.dto.CreateCommentInputDTO;
 import cl.metspherical.calbucofelizbackend.dto.CreateCommentRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.CreatePostRequestDTO;
 import cl.metspherical.calbucofelizbackend.dto.PostCommentsResponseDTO;
 import cl.metspherical.calbucofelizbackend.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.service.PostService;
+import cl.metspherical.calbucofelizbackend.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,10 +33,11 @@ public class PostController {
 
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Map<String, UUID>> createPost(
-            @RequestParam("username") String username,
             @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "categoryNames", required = false) Set<String> categoryNames,
             @RequestParam(value = "images", required = false) List<MultipartFile> images) throws IOException {
+
+        UUID authorId = SecurityUtils.getCurrentUserId();
 
         List<String> base64Images = new ArrayList<>();
         if (images != null && !images.isEmpty()) {
@@ -44,7 +47,7 @@ public class PostController {
         }
 
         CreatePostRequestDTO request = new CreatePostRequestDTO(
-                username,
+                authorId,
                 content,
                 categoryNames,
                 base64Images

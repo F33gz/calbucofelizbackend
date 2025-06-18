@@ -40,8 +40,7 @@ public class PostService {
     @Transactional
     public UUID createPost(CreatePostRequestDTO request) {
         // 1. Validate and get user
-        User author = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User author = userRepository.getReferenceById(request.authorId());
 
         // 2. Create base post
         Post post = Post.builder()
