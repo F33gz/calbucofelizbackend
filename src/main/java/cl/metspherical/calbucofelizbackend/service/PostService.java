@@ -292,7 +292,7 @@ public class PostService {
      * @throws RuntimeException if post or comment not found, or comment doesn't belong to the post
      */
     @Transactional
-    public void deleteComment(UUID postId, UUID commentId) {
+    public void deleteComment(UUID postId, UUID commentId, UUID userId) {
         // 1. Validate post exists
         if (!postRepository.existsById(postId)) {
             throw new RuntimeException("Post not found");
@@ -302,12 +302,17 @@ public class PostService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
 
-        // 3. Validate comment belongs to the post
+        // 3. Validate user is the author of the comment
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new RuntimeException("User is not the author of this comment");
+        }
+                
+        // 4. Validate comment belongs to the post
         if (!comment.getPost().getId().equals(postId)) {
             throw new RuntimeException("Comment does not belong to the specified post");
         }
 
-        // 4. Delete the comment
+        // 5. Delete the comment
         commentRepository.delete(comment);
     }
 

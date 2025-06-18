@@ -99,8 +99,9 @@ public class PostController {
     public ResponseEntity<Void> deleteComment(
             @PathVariable UUID postId,
             @PathVariable UUID id) {
+        UUID userId = SecurityUtils.getCurrentUserId();        
         
-        postService.deleteComment(postId, id);
+        postService.deleteComment(postId, id, userId);
         return ResponseEntity.noContent().build();
     }
 
