@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import javax.crypto.SecretKey;
@@ -60,6 +61,28 @@ public class JwtService {
     public UUID extractUserId(String token) {
         String userIdString = extractClaim(token, claims -> claims.get("userId", String.class));
         return UUID.fromString(userIdString);
+    }
+
+    /**
+     * Extracts the username from a JWT token
+     *
+     * @param token JWT token string
+     * @return Username as string
+     */
+    public String extractUsername(String token) {
+        return extractClaim(token, claims -> claims.get("username", String.class));
+    }
+
+    /**
+     * Extracts the roles from a JWT token
+     *
+     * @param token JWT token string
+     * @return List of roles, empty list if no roles found
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        List<String> roles = extractClaim(token, claims -> (List<String>) claims.get("roles"));
+        return roles != null ? roles : List.of();
     }
 
     /**
