@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Service responsible for handling user authentication operations
@@ -106,9 +107,8 @@ public class AuthenticationService {
         }
 
         // Extract user information from token
-        String rut = jwtService.extractUsername(refreshToken);
-        User user = userRepository.findByRut((rut))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        UUID id = jwtService.extractUserId(refreshToken);
+        User user = userRepository.getReferenceById((id));
 
         // Generate new access token
         String newAccessToken = jwtService.generateAccessToken(user);
