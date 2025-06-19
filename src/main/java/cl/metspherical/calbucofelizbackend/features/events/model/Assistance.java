@@ -25,8 +25,9 @@ public class Assistance {
 
     @Id
     @Column(columnDefinition = "SMALLINT")
-    private Byte id;    @Column(length = 20, nullable = false, unique = true)
+    private Byte id;
 
+    @Column(length = 20, nullable = false, unique = true)
     @NotBlank(message = "Assistance name cannot be blank")
     @Size(max = 20, message = "Assistance name cannot exceed 20 characters")
     private String name;

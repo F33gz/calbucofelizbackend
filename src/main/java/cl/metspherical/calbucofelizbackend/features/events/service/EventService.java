@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,12 +79,11 @@ public class EventService {
      * @return EventDetailDTO of the created event
      * @throws RuntimeException if user not found or invalid data
      */
-    public EventDetailDTO createEvent(CreateEventRequestDTO createEventRequest) {
+    public EventDetailDTO createEvent(CreateEventRequestDTO createEventRequest,UUID  authorId) {
         // Validate user exists
-        User user = userRepository.findByUsername(createEventRequest.username())
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + createEventRequest.username()));
+        User author = userRepository.getReferenceById(authorId);
         
-        // Parse dates - assuming ISO format like "2025-06-15T10:00:00"
+        // Parse dates
         LocalDateTime initDateTime;
         LocalDateTime endingDateTime;
         try {
@@ -105,7 +105,7 @@ public class EventService {
                 .address(createEventRequest.adress()) // Note: typo in DTO field name
                 .init(initDateTime)
                 .ending(endingDateTime)
-                .createdBy(user)
+                .createdBy(author)
                 .build();
         
         // Save event
