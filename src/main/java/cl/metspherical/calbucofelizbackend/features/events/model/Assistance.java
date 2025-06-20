@@ -3,7 +3,6 @@ package cl.metspherical.calbucofelizbackend.features.events.model;
 import cl.metspherical.calbucofelizbackend.features.events.enums.AssistanceType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.HashSet;
