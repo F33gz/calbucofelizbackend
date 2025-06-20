@@ -2,11 +2,10 @@ package cl.metspherical.calbucofelizbackend.features.events.controller;
 
 
 import cl.metspherical.calbucofelizbackend.common.security.utils.SecurityUtils;
-import cl.metspherical.calbucofelizbackend.features.events.dto.CreateEventRequestDTO;
-import cl.metspherical.calbucofelizbackend.features.events.dto.EventDetailDTO;
-import cl.metspherical.calbucofelizbackend.features.events.dto.EventsByMonthResponseDTO;
+import cl.metspherical.calbucofelizbackend.features.events.dto.*;
 import cl.metspherical.calbucofelizbackend.features.events.service.EventService;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -63,10 +62,14 @@ public class EventController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-    }
-
-    @PostMapping("/{id}/assist")
-    public ResponseEntity<?> addAssistant(@PathVariable Integer id){
-        return ResponseEntity.ok().build();
+    }    @PostMapping("/{id}/assist")
+    public ResponseEntity<?> addAssistant(@PathVariable Integer id, @RequestParam String type){
+        try {
+            UUID userId = SecurityUtils.getCurrentUserId();
+            CreateAssistantResponseDTO response = eventService.addAssistant(id, userId, type);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
