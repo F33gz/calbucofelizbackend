@@ -1,7 +1,8 @@
 package cl.metspherical.calbucofelizbackend.features.events.model;
 
+import cl.metspherical.calbucofelizbackend.features.events.enums.AssistanceType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
@@ -27,10 +28,10 @@ public class Assistance {
     @Column(columnDefinition = "SMALLINT")
     private Byte id;
 
-    @Column(length = 20, nullable = false, unique = true)
-    @NotBlank(message = "Assistance name cannot be blank")
-    @Size(max = 20, message = "Assistance name cannot exceed 20 characters")
-    private String name;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "name", nullable = false, unique = true)
+    @NotNull(message = "Assistance type cannot be null")
+    private AssistanceType name;
 
     @OneToMany(mappedBy = "assistance", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
