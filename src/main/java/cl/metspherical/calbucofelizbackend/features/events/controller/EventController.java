@@ -51,7 +51,8 @@ public class EventController {
 
     @GetMapping("/{id}/assistans")
     public ResponseEntity<?> getEventsByAssistanId(@PathVariable Integer id){
-        return ResponseEntity.ok().build();
+        List<AssistansResponseDTO> response = eventService.getEventsByAssistantId(id);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}/delete")

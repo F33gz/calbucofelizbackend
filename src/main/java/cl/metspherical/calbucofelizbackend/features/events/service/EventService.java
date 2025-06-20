@@ -1,10 +1,12 @@
 package cl.metspherical.calbucofelizbackend.features.events.service;
 
+import cl.metspherical.calbucofelizbackend.features.events.dto.AssistansResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.events.dto.CreateAssistantResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.events.dto.CreateEventRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.events.dto.EventDetailDTO;
 import cl.metspherical.calbucofelizbackend.features.events.dto.EventOverviewDTO;
 import cl.metspherical.calbucofelizbackend.features.events.dto.EventsByMonthResponseDTO;
+import cl.metspherical.calbucofelizbackend.features.events.dto.UserBasicDTO;
 import cl.metspherical.calbucofelizbackend.features.events.enums.AssistanceType;
 import cl.metspherical.calbucofelizbackend.features.events.model.Assistance;
 import cl.metspherical.calbucofelizbackend.features.events.model.Event;
@@ -78,6 +80,28 @@ public class EventService {
 
         // 2. Delete the event (cascade will handle event assistants and other relationships)
         eventRepository.delete(event);
+    }
+
+    /**
+     * Gets all assistants for a specific event
+     *
+     * @param eventId ID of the event to get assistants for
+     * @return List of AssistansResponseDTO containing assistant information
+     * @throws RuntimeException if event not found
+     */
+    public List<AssistansResponseDTO> getEventsByAssistantId(Integer eventId) {
+        // 1. Validate event exists
+        if (!eventRepository.existsById(eventId)) {
+            throw new RuntimeException("Event not found with id: " + eventId);
+        }
+
+        // 2. Get all assistants for the event
+        List<EventAssistant> eventAssistants = eventAssistantRepository.findByEventIdWithDetails(eventId);
+
+        // 3. Convert to DTOs
+        return eventAssistants.stream()
+                .map(this::convertToAssistansResponseDTO)
+                .toList();
     }
 
     /**
@@ -210,6 +234,22 @@ public class EventService {
                 event.getInit(),
                 event.getEnding(),
                 event.getCreatedBy().getUsername()
+        );
+    }
+
+    /**
+     * Converts EventAssistant entity to AssistansResponseDTO
+     *
+     * @param eventAssistant EventAssistant entity
+     * @return AssistansResponseDTO
+     */
+    private AssistansResponseDTO convertToAssistansResponseDTO(EventAssistant eventAssistant) {
+        UserBasicDTO userBasicDTO = new UserBasicDTO(
+                eventAssistant.getUser().getUsername(),
+                eventAssistant.getUser().getAvatar()
+        );        return new AssistansResponseDTO(
+                eventAssistant.getAssistance().getName().getDisplayName(),
+                userBasicDTO
         );
     }
 
