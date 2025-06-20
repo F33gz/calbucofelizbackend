@@ -5,7 +5,6 @@ public record CreateEventRequestDTO(
         String desc,
         String adress,
         String init,
-        String ending,
-        String username
+        String ending
 ) {
 }
