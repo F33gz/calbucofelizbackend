@@ -73,12 +73,16 @@ public class EventService {
      * @param id ID of the event to delete
      * @throws RuntimeException if event not found
      */
-    public void deleteEvent(Integer id) {
+    public void deleteEvent(Integer id,UUID userId) {
         // 1. Validate event exists
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+        // 2. Validate user is the creator of the event
+        if (!event.getCreatedBy().getId().equals(userId)) {
+            throw new RuntimeException("You are not authorized to delete this event");
+        }
 
-        // 2. Delete the event (cascade will handle event assistants and other relationships)
+        // 3. Delete the event (cascade will handle event assistants and other relationships)
         eventRepository.delete(event);
     }
 

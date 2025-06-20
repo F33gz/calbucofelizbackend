@@ -58,12 +58,15 @@ public class EventController {
     @DeleteMapping("/{id}/delete")
     public ResponseEntity<?> deleteEvent(@PathVariable Integer id){
         try {
-            eventService.deleteEvent(id);
-            return ResponseEntity.ok().build();
+            UUID userId = SecurityUtils.getCurrentUserId();
+            eventService.deleteEvent(id,userId);
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-    }    @PostMapping("/{id}/assist")
+    }
+
+    @PostMapping("/{id}/assist")
     public ResponseEntity<?> addAssistant(@PathVariable Integer id, @RequestParam String type){
         try {
             UUID userId = SecurityUtils.getCurrentUserId();
