@@ -4,7 +4,6 @@ import cl.metspherical.calbucofelizbackend.features.auth.dto.*;
 import cl.metspherical.calbucofelizbackend.features.auth.service.AuthenticationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,72 +12,53 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AuthController {
+
+    private static final String ACCESS_TOKEN_KEY = "accessToken";
+    private static final String REFRESH_TOKEN_KEY = "refreshToken";
 
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDTO request) {
-        try {
-            Map<String, String> tokens = authenticationService.register(request);
+    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
+        Map<String, String> tokens = authenticationService.register(request);
 
-            TokenDataDTO tokenData = new TokenDataDTO(
-                    tokens.get("accessToken"),
-                    tokens.get("refreshToken")
-            );
+        TokenDataDTO tokenData = new TokenDataDTO(
+                tokens.get(ACCESS_TOKEN_KEY),
+                tokens.get(REFRESH_TOKEN_KEY)
+        );
 
-            String username = tokens.get("username");
+        String username = tokens.get("username");
 
-            AuthResponseDTO response = new AuthResponseDTO(username,tokenData);
+        AuthResponseDTO response = new AuthResponseDTO(username,tokenData);
 
-            return ResponseEntity.ok(response);        } catch (Exception e) {
-            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
-                "error", 
-                "Account already registered"
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO request) {
-        try {
-            Map<String, String> tokens = authenticationService.login(request);
+    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
+        Map<String, String> tokens = authenticationService.login(request);
 
-            TokenDataDTO tokenData = new TokenDataDTO(
-                    tokens.get("accessToken"),
-                    tokens.get("refreshToken")
-            );
+        TokenDataDTO tokenData = new TokenDataDTO(
+                tokens.get(ACCESS_TOKEN_KEY),
+                tokens.get(REFRESH_TOKEN_KEY)
+        );
 
-            String username = tokens.get("username");
+        String username = tokens.get("username");
 
-            AuthResponseDTO response = new AuthResponseDTO(username, tokenData);
+        AuthResponseDTO response = new AuthResponseDTO(username, tokenData);
 
-            return ResponseEntity.ok(response);        } catch (Exception e) {
-            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
-                "error", 
-                "Invalid RUT or password"
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@Valid @RequestBody RefreshTokenRequestDTO request) {
-        try {
-            Map<String, String> tokens = authenticationService.refreshToken(request.refreshToken());
+    public ResponseEntity<RefreshTokenResponseDTO> refresh(@Valid @RequestBody RefreshTokenRequestDTO request) {
+        Map<String, String> tokens = authenticationService.refreshToken(request.refreshToken());
 
-            RefreshTokenResponseDTO response = new RefreshTokenResponseDTO(
-                    tokens.get("accessToken")
-            );
+        RefreshTokenResponseDTO response = new RefreshTokenResponseDTO(
+                tokens.get(ACCESS_TOKEN_KEY)
+        );
 
-            return ResponseEntity.ok(response);        } catch (Exception e) {
-            ErrorResponseDTO errorResponse = new ErrorResponseDTO(
-                "error", 
-                "Error refreshing token"
-            );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
+        return ResponseEntity.ok(response);
     }
 }

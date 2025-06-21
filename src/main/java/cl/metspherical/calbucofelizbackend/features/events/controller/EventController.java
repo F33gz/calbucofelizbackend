@@ -13,67 +13,46 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/events")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class EventController {
 
     private final EventService eventService;
 
     @PostMapping("/create")
-    public ResponseEntity<?> createEvent(@RequestBody CreateEventRequestDTO createEventRequest) {
-        try {
-            UUID authorId = SecurityUtils.getCurrentUserId();
-            EventDetailDTO response = eventService.createEvent(createEventRequest, authorId);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<EventDetailDTO> createEvent(@RequestBody CreateEventRequestDTO createEventRequest) {
+        UUID authorId = SecurityUtils.getCurrentUserId();
+        EventDetailDTO response = eventService.createEvent(createEventRequest, authorId);
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/by-month/{month}")
-    public ResponseEntity<?> getAllEvents(@PathVariable String month) {
-        try {
-            EventsByMonthResponseDTO response = eventService.getEventsByMonth(month);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @GetMapping()
+    public ResponseEntity<EventsByMonthResponseDTO> getAllEvents(@RequestParam String month) {
+        EventsByMonthResponseDTO response = eventService.getEventsByMonth(month);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getEventById(@PathVariable Integer id){
-        try {
-            EventDetailDTO response = eventService.getEventById(id);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<EventDetailDTO> getEventById(@PathVariable Integer id){
+        EventDetailDTO response = eventService.getEventById(id);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/assistans")
-    public ResponseEntity<?> getEventsByAssistanId(@PathVariable Integer id){
+    public ResponseEntity<List<AssistansResponseDTO>> getEventsByAssistanId(@PathVariable Integer id){
         List<AssistansResponseDTO> response = eventService.getEventsByAssistantId(id);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}/delete")
-    public ResponseEntity<?> deleteEvent(@PathVariable Integer id){
-        try {
-            UUID userId = SecurityUtils.getCurrentUserId();
-            eventService.deleteEvent(id,userId);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<Void> deleteEvent(@PathVariable Integer id){
+        UUID userId = SecurityUtils.getCurrentUserId();
+        eventService.deleteEvent(id,userId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/assist")
-    public ResponseEntity<?> addAssistant(@PathVariable Integer id, @RequestParam String type){
-        try {
-            UUID userId = SecurityUtils.getCurrentUserId();
-            CreateAssistantResponseDTO response = eventService.addAssistant(id, userId, type);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<CreateAssistantResponseDTO> addAssistant(@PathVariable Integer id, @RequestParam String type){
+        UUID userId = SecurityUtils.getCurrentUserId();
+        CreateAssistantResponseDTO response = eventService.addAssistant(id, userId, type);
+        return ResponseEntity.ok(response);
     }
 }
