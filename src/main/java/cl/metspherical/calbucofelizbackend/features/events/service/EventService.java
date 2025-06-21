@@ -17,8 +17,10 @@ import cl.metspherical.calbucofelizbackend.features.events.repository.EventRepos
 import cl.metspherical.calbucofelizbackend.features.events.repository.EventAssistantRepository;
 import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -33,6 +35,7 @@ public class EventService {
     private final UserRepository userRepository;
     private final EventAssistantRepository eventAssistantRepository;
     private final AssistanceRepository assistanceRepository;
+    private static final String EVENT_NOT_FOUND_MESSAGE = "Event not found with id: ";
 
     /**
      * Gets all events for a specific month
@@ -53,16 +56,18 @@ public class EventService {
                 .toList();
         
         return new EventsByMonthResponseDTO(monthName, eventDTOs);
-    }    /**
+    }
+
+    /**
      * Gets an event by its ID
      * 
      * @param id ID of the event to retrieve
      * @return EventDetailDTO containing event information
-     * @throws RuntimeException if event not found
+     * @throws EventNotFoundException if event not found
      */
     public EventDetailDTO getEventById(Integer id) {
         Event event = eventRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE + id));
         
         return convertToEventDetailDTO(event);
     }
@@ -71,15 +76,16 @@ public class EventService {
      * Deletes an event and all its associated data
      *
      * @param id ID of the event to delete
-     * @throws RuntimeException if event not found
+     * @throws EventNotFoundException if event not found
+     * @throws UnauthorizedException if user is not authorized to delete
      */
     public void deleteEvent(Integer id,UUID userId) {
         // 1. Validate event exists
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE + id));
         // 2. Validate user is the creator of the event
         if (!event.getCreatedBy().getId().equals(userId)) {
-            throw new RuntimeException("You are not authorized to delete this event");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not authorized to delete this event");
         }
 
         // 3. Delete the event (cascade will handle event assistants and other relationships)
@@ -91,12 +97,12 @@ public class EventService {
      *
      * @param eventId ID of the event to get assistants for
      * @return List of AssistansResponseDTO containing assistant information
-     * @throws RuntimeException if event not found
+     * @throws EventNotFoundException if event not found
      */
     public List<AssistansResponseDTO> getEventsByAssistantId(Integer eventId) {
         // 1. Validate event exists
         if (!eventRepository.existsById(eventId)) {
-            throw new RuntimeException("Event not found with id: " + eventId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE + eventId);
         }
 
         // 2. Get all assistants for the event
@@ -115,21 +121,23 @@ public class EventService {
      * @param userId ID of the user
      * @param type String representing the assistance type
      * @return CreateAssistantResponseDTO with status and type
-     * @throws RuntimeException if event not found or assistance type not found
+     * @throws EventNotFoundException if event not found
+     * @throws UserNotFoundException if user not found
+     * @throws InvalidInputException if assistance type is invalid
      */
     @Transactional
     public CreateAssistantResponseDTO addAssistant(Integer eventId, UUID userId,String type) {
         // 1. Validate event exists
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE + eventId));
 
         // 2. Validate user exists
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with id: " + userId));
 
         // 3. Convert string to AssistanceType enum
         AssistanceType assistanceType = AssistanceType.fromDisplayName(type)
-                .orElseThrow(() -> new RuntimeException("Invalid assistance type: " + type));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid assistance type: " + type));
 
         // 4. Get or create assistance by name (which is the AssistanceType)
         Assistance assistance = assistanceRepository.findByName(assistanceType)
@@ -171,7 +179,7 @@ public class EventService {
      * 
      * @param createEventRequest DTO containing event data
      * @return EventDetailDTO of the created event
-     * @throws RuntimeException if user not found or invalid data
+     * @throws InvalidInputException if user not found or invalid data
      */
     public EventDetailDTO createEvent(CreateEventRequestDTO createEventRequest,UUID  authorId) {
         // Validate user exists
@@ -184,12 +192,12 @@ public class EventService {
             initDateTime = LocalDateTime.parse(createEventRequest.init());
             endingDateTime = LocalDateTime.parse(createEventRequest.ending());
         } catch (Exception e) {
-            throw new RuntimeException("Invalid date format. Use ISO format: yyyy-MM-ddTHH:mm:ss");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format. Use ISO format: yyyy-MM-ddTHH:mm:ss");
         }
         
         // Validate that ending is after init
         if (endingDateTime.isBefore(initDateTime)) {
-            throw new RuntimeException("Event ending time must be after init time");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ending time must be after init time");
         }
         
         // Create event entity
@@ -262,14 +270,14 @@ public class EventService {
      * 
      * @param monthName Month name (case insensitive)
      * @return Month number (1-12)
-     * @throws RuntimeException if month name is invalid
+     * @throws InvalidInputException if month name is invalid
      */
     private int getMonthNumber(String monthName) {
         try {
             Month month = Month.valueOf(monthName.toUpperCase());
             return month.getValue();
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid month name: " + monthName + 
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid month name: " + monthName +
                 ". Valid months are: January, February, March, April, May, June, " +
                 "July, August, September, October, November, December");
         }
