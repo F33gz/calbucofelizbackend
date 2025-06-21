@@ -63,7 +63,6 @@ public class EventService {
      * 
      * @param id ID of the event to retrieve
      * @return EventDetailDTO containing event information
-     * @throws EventNotFoundException if event not found
      */
     public EventDetailDTO getEventById(Integer id) {
         Event event = eventRepository.findByIdWithDetails(id)
@@ -76,8 +75,6 @@ public class EventService {
      * Deletes an event and all its associated data
      *
      * @param id ID of the event to delete
-     * @throws EventNotFoundException if event not found
-     * @throws UnauthorizedException if user is not authorized to delete
      */
     public void deleteEvent(Integer id,UUID userId) {
         // 1. Validate event exists
@@ -97,7 +94,6 @@ public class EventService {
      *
      * @param eventId ID of the event to get assistants for
      * @return List of AssistansResponseDTO containing assistant information
-     * @throws EventNotFoundException if event not found
      */
     public List<AssistansResponseDTO> getEventsByAssistantId(Integer eventId) {
         // 1. Validate event exists
@@ -121,9 +117,6 @@ public class EventService {
      * @param userId ID of the user
      * @param type String representing the assistance type
      * @return CreateAssistantResponseDTO with status and type
-     * @throws EventNotFoundException if event not found
-     * @throws UserNotFoundException if user not found
-     * @throws InvalidInputException if assistance type is invalid
      */
     @Transactional
     public CreateAssistantResponseDTO addAssistant(Integer eventId, UUID userId,String type) {
@@ -179,7 +172,6 @@ public class EventService {
      * 
      * @param createEventRequest DTO containing event data
      * @return EventDetailDTO of the created event
-     * @throws InvalidInputException if user not found or invalid data
      */
     public EventDetailDTO createEvent(CreateEventRequestDTO createEventRequest,UUID  authorId) {
         // Validate user exists
@@ -270,7 +262,6 @@ public class EventService {
      * 
      * @param monthName Month name (case insensitive)
      * @return Month number (1-12)
-     * @throws InvalidInputException if month name is invalid
      */
     private int getMonthNumber(String monthName) {
         try {
