@@ -15,11 +15,12 @@ import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
 import cl.metspherical.calbucofelizbackend.features.posts.repository.PostImageRepository;
 import cl.metspherical.calbucofelizbackend.features.posts.repository.PostLikeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -100,7 +101,7 @@ public class PostService {
      */
     private void processImages(List<String> base64ImageList, Post post) {
         if (base64ImageList.size() > 10) {
-            throw new RuntimeException("Maximum 10 images allowed");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum 10 images allowed");
         }
 
         for (String base64Image : base64ImageList) {
@@ -115,7 +116,7 @@ public class PostService {
                 post.addImage(postImage);
 
             } catch (Exception e) {
-                throw new RuntimeException("Error processing image: " + e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error processing image: " + e.getMessage());
             }
         }
     }
@@ -201,12 +202,12 @@ public class PostService {
         List<String> images = post.getImages().stream()
                 .map(image ->
                         buildImageUrl(image.getId()))
-                .collect(Collectors.toList());
+                .toList();
 
         List<CategoryDTO> categoryDTOs = post.getCategories().stream()
                 .map(category -> new CategoryDTO(
                         category.getName()))
-                .collect(Collectors.toList());
+                .toList();
 
         // Use COUNT queries to avoid ConcurrentModificationException
         long likesCount = postRepository.countLikesByPostId(post.getId());
@@ -268,7 +269,7 @@ public class PostService {
     public PostCommentsResponseDTO getCommentsByPostId(UUID postId) {
         // 1. Validate post exists
         if (!postRepository.existsById(postId)) {
-            throw new RuntimeException("Post not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
         }
 
         // 2. Get comments directly with optimized query
@@ -279,7 +280,7 @@ public class PostService {
                         comment.getContent(),
                         comment.getCreatedAt()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         // 3. Return wrapped in response DTO
         return new PostCommentsResponseDTO(comments);
@@ -295,21 +296,21 @@ public class PostService {
     public void deleteComment(UUID postId, UUID commentId, UUID userId) {
         // 1. Validate post exists
         if (!postRepository.existsById(postId)) {
-            throw new RuntimeException("Post not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found");
         }
 
         // 2. Validate comment exists
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
 
         // 3. Validate user is the author of the comment
         if (!comment.getUser().getId().equals(userId)) {
-            throw new RuntimeException("User is not the author of this comment");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not the author of this comment");
         }
                 
         // 4. Validate comment belongs to the post
         if (!comment.getPost().getId().equals(postId)) {
-            throw new RuntimeException("Comment does not belong to the specified post");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment does not belong to the specified post");
         }
 
         // 5. Delete the comment
@@ -330,7 +331,7 @@ public class PostService {
 
         // 2. Validate user is the author of the post
         if (!post.getAuthor().getId().equals(userId)) {
-            throw new RuntimeException("User is not the author of this post");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not the author of this post");
         }
         // 3. Delete the post (cascade will handle comments, images, and category relationships)
         postRepository.delete(post);
@@ -346,7 +347,7 @@ public class PostService {
     public void likePost(UUID postId, UUID userId) {
         // 1. Check if user already liked the post
         if (postLikeRepository.existsByPost_IdAndUser_Id(postId, userId)) {
-            throw new RuntimeException("User has already liked this post");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "User has already liked this post");
         }
 
         // 2. Use lazy references
@@ -372,7 +373,7 @@ public class PostService {
     public void unlikePost(UUID postId, UUID userId) {
         // 1. Check if user has liked the post
         if (!postLikeRepository.existsByPost_IdAndUser_Id(postId, userId)) {
-            throw new RuntimeException("User has not liked this post");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User has not liked this post");
         }
 
         // 2. Delete the like directly
