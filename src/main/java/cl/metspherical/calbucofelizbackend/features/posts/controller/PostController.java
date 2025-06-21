@@ -25,7 +25,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/posts")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class PostController {
 
@@ -99,8 +98,8 @@ public class PostController {
     public ResponseEntity<Void> deleteComment(
             @PathVariable UUID postId,
             @PathVariable UUID id) {
-        UUID userId = SecurityUtils.getCurrentUserId();        
-        
+        UUID userId = SecurityUtils.getCurrentUserId();
+
         postService.deleteComment(postId, id, userId);
         return ResponseEntity.noContent().build();
     }
@@ -112,20 +111,20 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{post_id}/like")
-    public ResponseEntity<Map<String, Object>> likePost(@PathVariable UUID post_id) {
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<Map<String, Object>> likePost(@PathVariable UUID postId) {
         UUID userId = SecurityUtils.getCurrentUserId();
-        postService.likePost(post_id, userId);
+        postService.likePost(postId, userId);
         Map<String, Object> response = new HashMap<>();
         response.put("like", true);
         response.put("status", "post liked successfully");
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{post_id}/like")
-    public ResponseEntity<Void> unlikePost(@PathVariable UUID post_id) {
+    @DeleteMapping("/{postId}/like")
+    public ResponseEntity<Void> unlikePost(@PathVariable UUID postId) {
         UUID userId = SecurityUtils.getCurrentUserId();
-        postService.unlikePost(post_id, userId);
+        postService.unlikePost(postId, userId);
         return ResponseEntity.ok().build();
     }
 }
