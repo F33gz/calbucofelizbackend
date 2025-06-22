@@ -14,8 +14,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "post")
 @Data
-@ToString(exclude = {"author", "categories", "images"})
-@EqualsAndHashCode(exclude = {"author", "categories", "images"})
+@ToString(exclude = {"author", "categories", "images", "comments", "likes"})
+@EqualsAndHashCode(exclude = {"author", "categories", "images", "comments", "likes"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -13,7 +13,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @ToString(exclude = {"post", "user"})
-@EqualsAndHashCode
+@EqualsAndHashCode(exclude = {"post", "user"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
