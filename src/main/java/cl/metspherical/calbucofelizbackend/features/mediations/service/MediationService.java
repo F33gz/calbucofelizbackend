@@ -1,6 +1,8 @@
 package cl.metspherical.calbucofelizbackend.features.mediations.service;
 
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.CreateMediationRequestDTO;
+import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationOverviewDTO;
+import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationsResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.Mediation;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.MediationParticipant;
 import cl.metspherical.calbucofelizbackend.common.domain.User;
@@ -140,5 +142,41 @@ public class MediationService {
         }
 
         return participants;
+    }
+
+    /**
+     * Gets all mediations where the user is a participant
+     * 
+     * @param userId UUID of the user to get mediations for
+     * @return MediationsResponseDTO containing list of mediations
+     */
+    public MediationsResponseDTO getAllMediationsByUser(UUID userId) {
+        // Get all mediation participants for the user
+        List<MediationParticipant> userParticipations = mediationParticipantRepository.findByUserIdWithMediation(userId);
+        
+        // Transform to DTO
+        List<MediationOverviewDTO> mediationDTOs = userParticipations.stream()
+                .map(participation -> convertToMediationOverviewDTO(participation.getMediation()))
+                .toList();
+        
+        return new MediationsResponseDTO(mediationDTOs);
+    }
+
+    /**
+     * Converts Mediation entity to MediationOverviewDTO
+     * 
+     * @param mediation The mediation entity to convert
+     * @return MediationOverviewDTO with transformed data
+     */
+    private MediationOverviewDTO convertToMediationOverviewDTO(Mediation mediation) {
+        // Transform boolean mediationType to string
+        String typeString = Boolean.TRUE.equals(mediation.getMediationType()) ? "private" : "public";
+        
+        return new MediationOverviewDTO(
+                mediation.getId(),
+                mediation.getTitle(),
+                typeString,
+                mediation.getCreatedBy().getUsername()
+        );
     }
 }
