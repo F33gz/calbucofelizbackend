@@ -4,7 +4,6 @@ package cl.metspherical.calbucofelizbackend.features.mediations.controller;
 import cl.metspherical.calbucofelizbackend.common.security.utils.SecurityUtils;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.CreateMediationRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationsResponseDTO;
-import cl.metspherical.calbucofelizbackend.features.mediations.model.Mediation;
 import cl.metspherical.calbucofelizbackend.features.mediations.service.MediationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
