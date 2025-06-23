@@ -8,7 +8,7 @@ public record CreatePostRequestDTO(
     UUID authorId,
     String content,
     Set<String> categoryNames,
-    List<String> images
+    List<byte[]> processedImages
 ) {
 }
 

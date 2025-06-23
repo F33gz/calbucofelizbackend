@@ -12,14 +12,15 @@ import cl.metspherical.calbucofelizbackend.features.posts.repository.CategoryRep
 import cl.metspherical.calbucofelizbackend.features.posts.repository.CommentRepository;
 import cl.metspherical.calbucofelizbackend.features.posts.repository.PostRepository;
 import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
-import cl.metspherical.calbucofelizbackend.features.posts.repository.PostImageRepository;
 import cl.metspherical.calbucofelizbackend.features.posts.repository.PostLikeRepository;
+import cl.metspherical.calbucofelizbackend.common.service.CloudinaryUploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -29,9 +30,11 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final PostImageRepository postImageRepository;
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
+    private final CloudinaryUploadService cloudinaryUploadService;
+
+
     /**
      * Creates a new post in the system
      *
@@ -54,10 +57,9 @@ public class PostService {
             Set<Category> categories = processCategories(request.categoryNames());
             categories.forEach(post::addCategory);
         }
-
-        // 4. Process images (directly as byte[])
-        if (request.images() != null && !request.images().isEmpty()) {
-            processImages(request.images(), post);
+        // 4. Process images using CloudinaryUploadService
+        if (request.processedImages() != null && !request.processedImages().isEmpty()) {
+            processImages(request.processedImages(), post);
         }
 
         // 5. Save and return ID
@@ -94,29 +96,27 @@ public class PostService {
     }
 
     /**
-     * Processes base64 encoded images and associates them with a post
+     * Processes already compressed images and uploads them to Cloudinary
      *
-     * @param base64ImageList List of base64 encoded images
+     * @param processedImages List of processed image bytes to upload
      * @param post Post to associate images with
      */
-    private void processImages(List<String> base64ImageList, Post post) {
-        if (base64ImageList.size() > 10) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum 10 images allowed");
-        }
-
-        for (String base64Image : base64ImageList) {
+    private void processImages(List<byte[]> processedImages, Post post) {
+        for (byte[] imageBytes : processedImages) {
             try {
-                byte[] decodedImageBytes = decodeBase64Image(base64Image);
+                // Upload image to Cloudinary
+                String imageUrl = cloudinaryUploadService.uploadImage(imageBytes);
 
+                // Create PostImage entity with the URL
                 PostImage postImage = PostImage.builder()
-                        .img(decodedImageBytes)
-                        .contentType(detectContentType(decodedImageBytes))
+                        .url(imageUrl)
                         .build();
 
                 post.addImage(postImage);
 
-            } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error processing image: " + e.getMessage());
+            } catch (IOException e) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                    "Error uploading image: " + e.getMessage());
             }
         }
     }
@@ -132,39 +132,6 @@ public class PostService {
     }
 
     /**
-     * Decodes a base64 encoded image
-     *
-     * @param base64Image Base64 encoded image string
-     * @return Decoded image as byte array
-     */
-    private byte[] decodeBase64Image(String base64Image) {
-        String cleanBase64 = base64Image.replaceFirst("^data:image/[^;]+;base64,", "");
-        return Base64.getDecoder().decode(cleanBase64);
-    }
-
-    /**
-     * Detects the content type of an image based on its bytes
-     *
-     * @param imageBytes Image bytes to analyze
-     * @return MIME type of the image
-     */
-    private String detectContentType(byte[] imageBytes) {
-        if (imageBytes.length >= 4) {
-            if (imageBytes[0] == (byte) 0xFF && imageBytes[1] == (byte) 0xD8) {
-                return "image/jpeg";
-            }
-            if (imageBytes[0] == (byte) 0x89 && imageBytes[1] == 0x50 &&
-                    imageBytes[2] == 0x4E && imageBytes[3] == 0x47) {
-                return "image/png";
-            }
-            if (imageBytes[0] == 0x47 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46) {
-                return "image/gif";
-            }
-        }
-        return "image/jpeg";
-    }
-
-    /**
      * Gets a post by its ID with all related details
      *
      * @param id ID of the post to retrieve
@@ -174,16 +141,6 @@ public class PostService {
         Post post = postRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         return mapPostToPostDetailDTO(post);
-    }
-
-    /**
-     * Gets a post image by its ID
-     *
-     * @param imageId ID of the image to retrieve
-     * @return Optional containing the PostImage if found
-     */
-    public Optional<PostImage> getPostImageById(UUID imageId) {
-        return postImageRepository.findById(imageId);
     }
 
     /**
@@ -200,8 +157,7 @@ public class PostService {
         );
 
         List<String> images = post.getImages().stream()
-                .map(image ->
-                        buildImageUrl(image.getId()))
+                .map(PostImage::getUrl)  // Directamente devolver la URL
                 .toList();
 
         List<CategoryDTO> categoryDTOs = post.getCategories().stream()
@@ -223,16 +179,6 @@ public class PostService {
                 (int) likesCount,
                 (int) commentsCount
         );
-    }
-
-    /**
-     * Builds a URL for accessing a post image
-     *
-     * @param imageId ID of the image
-     * @return Complete URL to access the image
-     */
-    private String buildImageUrl(UUID imageId) {
-        return "http://localhost:8080/api/posts/image/" + imageId.toString();
     }
 
     /**

@@ -7,16 +7,14 @@ import cl.metspherical.calbucofelizbackend.features.posts.dto.PostCommentsRespon
 import cl.metspherical.calbucofelizbackend.features.posts.dto.PostDetailDTO;
 import cl.metspherical.calbucofelizbackend.features.posts.service.PostService;
 import cl.metspherical.calbucofelizbackend.common.security.utils.SecurityUtils;
+import cl.metspherical.calbucofelizbackend.common.service.VisionSafeSearchService;
+import cl.metspherical.calbucofelizbackend.common.service.ImageCompressionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,27 +27,26 @@ import java.util.UUID;
 public class PostController {
 
     private final PostService postService;
+    private final VisionSafeSearchService visionSafeSearchService;
+    private final ImageCompressionService imageCompressionService;    
 
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Map<String, UUID>> createPost(
             @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "categoryNames", required = false) Set<String> categoryNames,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) throws IOException {
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
 
         UUID authorId = SecurityUtils.getCurrentUserId();
 
-        List<String> base64Images = new ArrayList<>();
-        if (images != null && !images.isEmpty()) {
-            for (MultipartFile image : images) {
-                base64Images.add(Base64.getEncoder().encodeToString(image.getBytes()));
-            }
-        }
+        visionSafeSearchService.validateImages(images);
+
+        List<byte[]> processedImages = imageCompressionService.compressImages(images);
 
         CreatePostRequestDTO request = new CreatePostRequestDTO(
                 authorId,
                 content,
                 categoryNames,
-                base64Images
+                processedImages
         );
 
         UUID postId = postService.createPost(request);
@@ -61,15 +58,6 @@ public class PostController {
     public ResponseEntity<PostDetailDTO> getPost(@PathVariable UUID id) {
         PostDetailDTO post = postService.getPostById(id);
         return ResponseEntity.ok(post);
-    }
-
-    @GetMapping("/image/{imageId}")
-    public ResponseEntity<byte[]> getPostImage(@PathVariable UUID imageId) {
-        return postService.getPostImageById(imageId)
-                .map(image -> ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(image.getContentType()))
-                        .body(image.getImg()))
-                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/comments")
