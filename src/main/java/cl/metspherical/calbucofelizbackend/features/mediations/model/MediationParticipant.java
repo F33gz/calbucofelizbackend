@@ -38,6 +38,6 @@ public class MediationParticipant {
     @AllArgsConstructor
     public static class MediationParticipantId implements Serializable {
         private UUID user;
-        private Integer mediation;
+        private UUID mediation;
     }
 }
