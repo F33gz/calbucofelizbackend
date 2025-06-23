@@ -21,11 +21,8 @@ public class PostImage {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
-    @Lob
-    @Column(name = "img", nullable = false)
-    private byte[] img;
-
-    private String contentType;
+    @Column(name = "url", nullable = false, length = 500)
+    private String url;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
