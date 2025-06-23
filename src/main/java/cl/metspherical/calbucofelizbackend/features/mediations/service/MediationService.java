@@ -72,7 +72,7 @@ public class MediationService {
      * @param request The creation request DTO
      */
     private void createMediationParticipants(Mediation mediation, CreateMediationRequestDTO request) {
-        Set<MediationParticipant> participants = new HashSet<>();
+        Set<MediationParticipant> participants;
 
         if (Boolean.FALSE.equals(request.type())) {
             // Public mediation - add all users from database
