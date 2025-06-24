@@ -1,0 +1,66 @@
+package cl.metspherical.calbucofelizbackend.features.mediations.service;
+
+import cl.metspherical.calbucofelizbackend.common.domain.User;
+import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
+import cl.metspherical.calbucofelizbackend.features.mediations.model.Mediation;
+import cl.metspherical.calbucofelizbackend.features.mediations.model.Message;
+import cl.metspherical.calbucofelizbackend.features.mediations.repository.MediationRepository;
+import cl.metspherical.calbucofelizbackend.features.mediations.repository.MessageRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class MessageService {
+
+    private final MessageRepository messageRepository;
+    private final MediationRepository mediationRepository;
+    private final UserRepository userRepository;
+
+    /**
+     * Saves a new message in a mediation
+     * 
+     * @param mediationId ID of the mediation
+     * @param senderId ID of the message sender
+     * @param content Message content
+     * @return Saved message entity
+     */
+    @Transactional
+    public Message saveMessage(UUID mediationId, UUID senderId, String content) {
+        // Validate mediation exists
+        Mediation mediation = mediationRepository.findById(mediationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Mediation not found with id: " + mediationId));
+
+        // Validate user exists
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found with id: " + senderId));
+
+        // Create and save message
+        Message message = Message.builder()
+                .content(content)
+                .mediation(mediation)
+                .sender(sender)
+                .build();
+
+        return messageRepository.save(message);
+    }
+
+    /**
+     * Gets all messages from a mediation ordered by sent date
+     * 
+     * @param mediationId ID of the mediation
+     * @return List of messages ordered by sent date
+     */
+    @Transactional(readOnly = true)
+    public List<Message> getMessagesByMediation(UUID mediationId) {
+        return messageRepository.findByMediationIdOrderBySentAtAsc(mediationId);
+    }
+}
