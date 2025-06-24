@@ -14,6 +14,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -91,6 +92,25 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
                 )
         );
         sendMessage(session, response);
+
+        // Send message history
+        List<Message> messageHistory = messageService.getMessagesByMediation(mediationId);
+        
+        if (!messageHistory.isEmpty()) {
+            List<Map<String, Object>> mappedMessages = messageHistory.stream()
+                    .map(this::mapMessage)
+                    .toList();
+            
+            WebSocketResponseDTO historyResponse = new WebSocketResponseDTO(
+                    "messageHistory",
+                    "success",
+                    Map.of(
+                            "mediation_id", mediationId.toString(),
+                            "messages", mappedMessages
+                    )
+            );
+            sendMessage(session, historyResponse);
+        }
 
     }
 
