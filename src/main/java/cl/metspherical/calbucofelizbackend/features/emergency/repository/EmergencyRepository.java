@@ -11,12 +11,5 @@ import java.util.UUID;
 @Repository
 public interface EmergencyRepository extends JpaRepository<Emergency, UUID> {
     
-    /**
-     * Find all emergencies where finishedAt is after the given date
-     * This returns only active emergencies (not finished yet)
-     * 
-     * @param dateTime the current date time
-     * @return List of active emergencies
-     */
     List<Emergency> findByFinishedAtAfter(LocalDateTime dateTime);
 }
