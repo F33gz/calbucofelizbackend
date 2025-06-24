@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -44,6 +46,24 @@ public class EmergencyService {
         
         // Convert to DTO and return
         return convertToEmergencyDTO(savedEmergency);
+    }
+
+    /**
+     * Gets all active emergencies (not finished yet)
+     * Only returns emergencies where finishedAt is still in the future
+     *
+     * @return List of active EmergencyDTO
+     */
+    @Transactional(readOnly = true)
+    public List<EmergencyDTO> getEmergencies() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Get all emergencies where finishedAt is after current time
+        List<Emergency> activeEmergencies = emergencyRepository.findByFinishedAtAfter(now);
+
+        return activeEmergencies.stream()
+                .map(this::convertToEmergencyDTO)
+                .toList();
     }
 
     /**

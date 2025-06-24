@@ -7,6 +7,7 @@ import cl.metspherical.calbucofelizbackend.features.emergency.service.EmergencyS
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -22,4 +23,8 @@ public class EmergencyController {
         return emergencyService.createEmergency(request.content(), userId);
     }
 
+    @GetMapping()
+    public List<EmergencyDTO> getEmergency(){
+        return emergencyService.getEmergencies();
+    }
 }
