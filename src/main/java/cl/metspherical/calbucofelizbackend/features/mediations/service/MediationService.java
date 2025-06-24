@@ -179,4 +179,95 @@ public class MediationService {
                 mediation.getCreatedBy().getUsername()
         );
     }
+
+    // WebSocket-related methods
+
+    /**
+     * Checks if a user can join a mediation room
+     * 
+     * @param userId ID of the user
+     * @param mediationId ID of the mediation
+     * @return true if user can join, false otherwise
+     */
+    @Transactional(readOnly = true)
+    public boolean canUserJoinRoom(UUID userId, UUID mediationId) {
+        return mediationParticipantRepository.findByUserIdWithMediation(userId)
+                .stream()
+                .anyMatch(participant -> participant.getMediation().getId().equals(mediationId));
+    }
+
+    /**
+     * Checks if a user can talk in a mediation (not muted)
+     * 
+     * @param userId ID of the user
+     * @param mediationId ID of the mediation
+     * @return true if user can talk, false otherwise
+     */
+    @Transactional(readOnly = true)
+    public boolean canUserTalk(UUID userId, UUID mediationId) {
+        return mediationParticipantRepository.findByUserIdWithMediation(userId)
+                .stream()
+                .filter(participant -> participant.getMediation().getId().equals(mediationId))
+                .findFirst()
+                .map(MediationParticipant::getCanTalk)
+                .orElse(false);
+    }
+
+    /**
+     * Checks if a user is the creator of a mediation
+     * 
+     * @param userId ID of the user
+     * @param mediationId ID of the mediation
+     * @return true if user is creator, false otherwise
+     */
+    @Transactional(readOnly = true)
+    public boolean isUserMediationCreator(UUID userId, UUID mediationId) {
+        return mediationRepository.findById(mediationId)
+                .map(mediation -> mediation.getCreatedBy().getId().equals(userId))
+                .orElse(false);
+    }
+
+    /**
+     * Mutes a user in a mediation
+     * 
+     * @param userId ID of the user to mute
+     * @param mediationId ID of the mediation
+     * @return true if operation was successful, false otherwise
+     */
+    @Transactional
+    public boolean muteUser(UUID userId, UUID mediationId) {
+        List<MediationParticipant> participants = mediationParticipantRepository.findByUserIdWithMediation(userId);
+        
+        return participants.stream()
+                .filter(participant -> participant.getMediation().getId().equals(mediationId))
+                .findFirst()
+                .map(participant -> {
+                    participant.setCanTalk(false);
+                    mediationParticipantRepository.save(participant);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /**
+     * Unmutes a user in a mediation
+     * 
+     * @param userId ID of the user to unmute
+     * @param mediationId ID of the mediation
+     * @return true if operation was successful, false otherwise
+     */
+    @Transactional
+    public boolean unmuteUser(UUID userId, UUID mediationId) {
+        List<MediationParticipant> participants = mediationParticipantRepository.findByUserIdWithMediation(userId);
+        
+        return participants.stream()
+                .filter(participant -> participant.getMediation().getId().equals(mediationId))
+                .findFirst()
+                .map(participant -> {
+                    participant.setCanTalk(true);
+                    mediationParticipantRepository.save(participant);
+                    return true;
+                })
+                .orElse(false);
+    }
 }
