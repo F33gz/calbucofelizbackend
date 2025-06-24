@@ -1,6 +1,7 @@
 package cl.metspherical.calbucofelizbackend.features.mediations.websocket;
 
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.WebSocketRequestDTO;
+import cl.metspherical.calbucofelizbackend.features.mediations.dto.WebSocketResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.Message;
 import cl.metspherical.calbucofelizbackend.features.mediations.service.MediationService;
 import cl.metspherical.calbucofelizbackend.features.mediations.service.MessageService;
@@ -31,17 +32,13 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
-        UUID userId = (UUID) session.getAttributes().get("userId");
-        String username = (String) session.getAttributes().get("username");
-
         // Connection established response
-        Map<String, Object> response = Map.of(
-                "event", "connected",
-                "status", "success",
-                "data", Map.of("message", "WebSocket connection established")
+        WebSocketResponseDTO response = new WebSocketResponseDTO(
+                "connected",
+                "success",
+                Map.of("message", "WebSocket connection established")
         );
         sendMessage(session, response);
-
     }
 
     @Override
@@ -85,10 +82,10 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
         session.getAttributes().put("mediationId", mediationId);
 
         // Success response
-        Map<String, Object> response = Map.of(
-                "event", "roomJoined",
-                "status", "success",
-                "data", Map.of(
+        WebSocketResponseDTO response = new WebSocketResponseDTO(
+                "roomJoined",
+                "success",
+                Map.of(
                         "mediation_id", mediationId.toString(),
                         "room", roomKey
                 )
@@ -112,10 +109,10 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
         Message savedMessage = messageService.saveMessage(mediationId, userId, content);
 
         // Response to sender
-        Map<String, Object> senderResponse = Map.of(
-                "event", "messageSent",
-                "status", "success",
-                "data", Map.of(
+        WebSocketResponseDTO senderResponse = new WebSocketResponseDTO(
+                "messageSent",
+                "success",
+                Map.of(
                         "mediation_id", mediationId.toString(),
                         "message", mapMessage(savedMessage)
                 )
@@ -123,9 +120,10 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
         sendMessage(session, senderResponse);
 
         // Broadcast message to all in room
-        Map<String, Object> broadcastMessage = Map.of(
-                "event", "newMessage",
-                "data", Map.of(
+        WebSocketResponseDTO broadcastMessage = new WebSocketResponseDTO(
+                "newMessage",
+                "success",
+                Map.of(
                         "mediation_id", mediationId.toString(),
                         "message", mapMessage(savedMessage)
                 )
@@ -140,11 +138,10 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
         String roomKey = "room_" + mediationId;
 
         removeSessionFromRoom(session, roomKey);
-
-        Map<String, Object> response = Map.of(
-                "event", "roomLeft",
-                "status", "success",
-                "data", Map.of("mediation_id", mediationId.toString())
+        WebSocketResponseDTO response = new WebSocketResponseDTO(
+                "roomLeft",
+                "success",
+                Map.of("mediation_id", mediationId.toString())
         );
         sendMessage(session, response);
 
@@ -156,8 +153,6 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
         if (currentRoom != null) {
             removeSessionFromRoom(session, currentRoom);
         }
-
-        String username = (String) session.getAttributes().get("username");
     }
 
     // Helper methods
@@ -193,10 +188,10 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void sendErrorResponse(WebSocketSession session, String errorMessage) throws Exception {
-        Map<String, Object> errorResponse = Map.of(
-                "event", "error",
-                "status", "error",
-                "data", Map.of("message", errorMessage)
+        WebSocketResponseDTO errorResponse = new WebSocketResponseDTO(
+                "error",
+                "error",
+                Map.of("message", errorMessage)
         );
         sendMessage(session, errorResponse);
     }
