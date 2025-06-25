@@ -31,6 +31,10 @@ public class MediationParticipant {
 
     @Column(name = "can_talk", nullable = false)
     private Boolean canTalk;
+    
+    @Column(name = "is_moderator", nullable = false)
+    @Builder.Default
+    private Boolean isModerator = false;
 
     @Embeddable
     @Data
