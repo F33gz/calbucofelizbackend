@@ -24,11 +24,13 @@ public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "UUID")
-    private UUID id;    @Column(name = "text_content", nullable = false)
+    private UUID id;
 
+    @Column(name = "text_content", nullable = false)
     @NotBlank(message = "Post content cannot be blank")
-    private String content;@CreationTimestamp
+    private String content;
 
+    @CreationTimestamp
     @Column(
             name = "created_at",
             nullable = false,
