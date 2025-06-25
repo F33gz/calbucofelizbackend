@@ -48,8 +48,8 @@ public class User {
     @Column(length = 30)
     private String username;
 
-    @Lob
-    private byte[] avatar;
+    @Column(name = "avatar", nullable = false, length = 500)
+    private String avatar;
 
     @Column(length = 50, nullable = false)
     private String names;
@@ -106,16 +106,13 @@ public class User {
     @Builder.Default
     private Set<Message> sentMessages = new HashSet<>();
 
-    public String getAvatar() {
-        return avatar != null ? Base64.getEncoder().encodeToString(avatar) : null;
-    }
-    
-    public void setAvatar(String base64Avatar) {
-        this.avatar = base64Avatar != null ? Base64.getDecoder().decode(base64Avatar) : null;
-    }
     public List<String> getRoles() {
         return roles.stream()
-            .map(Role::getName)
-            .toList();
+                .map(role -> role.getName().name())
+                .toList();
+    }
+
+    public Set<Role> getRoleEntities() {
+        return roles;
     }
 }
