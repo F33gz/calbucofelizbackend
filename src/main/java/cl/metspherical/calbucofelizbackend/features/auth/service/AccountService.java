@@ -1,5 +1,6 @@
 package cl.metspherical.calbucofelizbackend.features.auth.service;
 
+import cl.metspherical.calbucofelizbackend.features.auth.dto.ProfileResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.auth.dto.UserEditRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.auth.dto.UserProfileResponseDTO;
 import cl.metspherical.calbucofelizbackend.common.domain.User;
@@ -54,6 +55,29 @@ public class AccountService {
         
         // Return updated user data
         return mapToUserProfileResponse(savedUser);
+    }
+
+    /**
+     * Retrieves the user profile by user ID.
+     * Throws an exception if the user is not found.
+     *
+     * @param userId UUID of the user whose profile is to be retrieved
+     * @return ProfileResponseDTO containing the user's profile data
+     * @throws ResponseStatusException if the user is not found
+     */
+    public ProfileResponseDTO getUserProfile (UUID userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,"User not found"));
+
+        return new ProfileResponseDTO(
+                user.getUsername(),
+                user.getAvatar(),
+                user.getNames(),
+                user.getLastNames(),
+                user.getDescription(),
+                user.getEmail(),
+                user.getNumber()
+        );
     }
 
     /**
