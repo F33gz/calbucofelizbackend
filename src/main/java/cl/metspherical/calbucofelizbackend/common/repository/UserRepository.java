@@ -1,5 +1,6 @@
 package cl.metspherical.calbucofelizbackend.common.repository;
 
+import cl.metspherical.calbucofelizbackend.common.enums.RoleName;
 import cl.metspherical.calbucofelizbackend.common.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,5 +25,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT CAST(COUNT(pl) AS INTEGER) FROM PostLike pl WHERE pl.post.author.id = :userId")
     Integer countLikesByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT u FROM User u " +
+           "JOIN u.roles r " +
+           "WHERE r.name IN (:moderationRoles) " +
+           "AND u.id NOT IN (SELECT mp.user.id FROM MediationParticipant mp " +
+           "                WHERE mp.mediation.id = :mediationId AND mp.isModerator = false)")
+    List<User> findAvailableModerators(@Param("mediationId") UUID mediationId, @Param("moderationRoles") List<RoleName> moderationRoles);
 }
 

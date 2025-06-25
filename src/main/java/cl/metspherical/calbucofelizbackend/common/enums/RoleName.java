@@ -20,7 +20,7 @@ public enum RoleName {
     public int getHierarchy() {
         return hierarchy;
     }    public boolean canModerate() {
-        return hierarchy > 0; // Cualquier rol con hierarchy > 0 puede moderar
+        return hierarchy > 0;
     }
 
     public static List<RoleName> getModerationRoles() {
