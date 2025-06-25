@@ -53,6 +53,8 @@ public class JwtWebSocketInterceptor implements HandshakeInterceptor {
                               @NonNull ServerHttpResponse response, 
                               @NonNull WebSocketHandler wsHandler, 
                               @Nullable Exception exception) {
+        // No additional processing needed after handshake completion
+        // Authentication and attribute setting is handled in beforeHandshake
     }
 
     private String extractTokenFromRequest(ServerHttpRequest request) {
