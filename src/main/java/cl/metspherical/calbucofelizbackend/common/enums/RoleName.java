@@ -13,13 +13,14 @@ public enum RoleName {
     MODERADOR(1);
     
     private final int hierarchy;
-    
-    RoleName(int hierarchy) {
+      RoleName(int hierarchy) {
         this.hierarchy = hierarchy;
     }
 
-    public boolean canModerate() {
-        return this == COMITE_SEGURIDAD || this == LIDER || this == MODERADOR;
+    public int getHierarchy() {
+        return hierarchy;
+    }    public boolean canModerate() {
+        return hierarchy > 0; // Cualquier rol con hierarchy > 0 puede moderar
     }
 
     public static List<RoleName> getModerationRoles() {
