@@ -1,8 +1,7 @@
 package cl.metspherical.calbucofelizbackend.common.domain;
 
+import cl.metspherical.calbucofelizbackend.common.enums.RoleName;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.HashSet;
@@ -25,12 +24,13 @@ public class Role {
 
     @Id
     @Column(columnDefinition = "SMALLINT")
-    private Byte id;    @Column(length = 10, nullable = false, unique = true)
+    private Byte id;
 
-    @NotBlank(message = "Role name cannot be blank")
-    @Size(max = 10, message = "Role name cannot exceed 10 characters")
-    private String name;@ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false, unique = true)
+    private RoleName name;
 
+    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<User> users = new HashSet<>();
 }
