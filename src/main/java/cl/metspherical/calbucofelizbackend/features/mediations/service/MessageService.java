@@ -26,13 +26,13 @@ public class MessageService {
     
     /**
      * Saves a new message in a mediation
-     * Validates that user can talk (not muted) before saving
+     * Validates that user can talk (not muted) and mediation is not closed before saving
      * 
      * @param mediationId ID of the mediation
      * @param senderId ID of the message sender
      * @param content Message content
      * @return Saved message entity
-     * @throws ResponseStatusException if user cannot send messages
+     * @throws ResponseStatusException if user cannot send messages or mediation is closed
      */
     @Transactional
     public Message saveMessage(UUID mediationId, UUID senderId, String content) {
@@ -40,6 +40,12 @@ public class MessageService {
         Mediation mediation = mediationRepository.findById(mediationId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Mediation not found with id: " + mediationId));
+
+        // Check if mediation is closed
+        if (Boolean.TRUE.equals(mediation.getIsSolved())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Cannot send messages: this mediation has been closed");
+        }
 
         // Validate user exists
         User sender = userRepository.findById(senderId)

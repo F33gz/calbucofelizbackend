@@ -6,11 +6,12 @@ import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationOver
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationsResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.Mediation;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.MediationParticipant;
+import cl.metspherical.calbucofelizbackend.features.mediations.websocket.MediationWebSocketHandler;
 import cl.metspherical.calbucofelizbackend.common.domain.User;
 import cl.metspherical.calbucofelizbackend.features.mediations.repository.MediationRepository;
 import cl.metspherical.calbucofelizbackend.features.mediations.repository.MediationParticipantRepository;
 import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,13 +27,25 @@ import java.util.UUID;
  * including creation and management of mediations and their participants
  */
 @Service
-@RequiredArgsConstructor
 public class MediationService {
 
     private final MediationRepository mediationRepository;
     private final MediationParticipantRepository mediationParticipantRepository;
     private final UserRepository userRepository;
     private final MediationParticipantService participantService;
+    private final MediationWebSocketHandler webSocketHandler;
+
+    public MediationService(MediationRepository mediationRepository,
+                          MediationParticipantRepository mediationParticipantRepository,
+                          UserRepository userRepository,
+                          MediationParticipantService participantService,
+                          @Lazy MediationWebSocketHandler webSocketHandler) {
+        this.mediationRepository = mediationRepository;
+        this.mediationParticipantRepository = mediationParticipantRepository;
+        this.userRepository = userRepository;
+        this.participantService = participantService;
+        this.webSocketHandler = webSocketHandler;
+    }
 
     /**
      * Creates a new mediation in the system
@@ -78,6 +91,7 @@ public class MediationService {
      * @param closeMediationDTO DTO containing the reason for closing the mediation
      * @return CloseMediationDTO containing the updated mediation details
      */
+    @Transactional
     public CloseMediationDTO closeMediation(UUID userId, UUID mediationId, CloseMediationDTO closeMediationDTO) {
         // Verify the mediation exists
         Mediation mediation = mediationRepository.findById(mediationId)
@@ -98,6 +112,9 @@ public class MediationService {
 
         // Save the updated mediation
         mediationRepository.save(mediation);
+
+        // Broadcast mediation closure to all participants
+        webSocketHandler.broadcastMediationClosed(mediationId, participant.getUser().getUsername(), closeMediationDTO.reason());
 
         return closeMediationDTO;
     }
@@ -164,5 +181,19 @@ public class MediationService {
                 Boolean.TRUE.equals(mediation.getMediationType()) ? "private" : "public",
                 mediation.getCreatedBy().getUsername()
         );
+    }
+
+    /**
+     * Gets a mediation by its ID
+     *
+     * @param mediationId UUID of the mediation to retrieve
+     * @return Mediation entity
+     * @throws ResponseStatusException if mediation is not found
+     */
+    @Transactional(readOnly = true)
+    public Mediation getMediationById(UUID mediationId) {
+        return mediationRepository.findById(mediationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Mediation not found with id: " + mediationId));
     }
 }

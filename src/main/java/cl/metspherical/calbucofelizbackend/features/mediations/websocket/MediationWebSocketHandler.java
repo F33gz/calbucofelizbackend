@@ -2,9 +2,11 @@ package cl.metspherical.calbucofelizbackend.features.mediations.websocket;
 
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.WebSocketRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.WebSocketResponseDTO;
+import cl.metspherical.calbucofelizbackend.features.mediations.model.Mediation;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.MediationParticipant;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.Message;
 import cl.metspherical.calbucofelizbackend.features.mediations.service.MediationParticipantService;
+import cl.metspherical.calbucofelizbackend.features.mediations.service.MediationService;
 import cl.metspherical.calbucofelizbackend.features.mediations.service.MessageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ import java.util.function.Function;
 public class MediationWebSocketHandler extends TextWebSocketHandler {
 
     private final MediationParticipantService participantService;
+    private final MediationService mediationService;
     private final MessageService messageService;
     private final ObjectMapper objectMapper;
     private final Map<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
@@ -90,8 +93,10 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
                 return;
             }
 
-            // Add session to room
+            // Get mediation information
+            Mediation mediation = mediationService.getMediationById(mediationId);
 
+            // Add session to room
             roomSessions.computeIfAbsent(roomKey, k -> ConcurrentHashMap.newKeySet()).add(session);
             session.getAttributes().put("currentRoom", roomKey);
             session.getAttributes().put("mediationId", mediationId);
@@ -103,14 +108,24 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
             boolean isModerator = participantService.canUserModerate(userId, mediationId);
 
             // Build response data
-            Map<String, Object> responseData = new HashMap<>();            responseData.put(MEDIATION_ID, mediationId.toString());
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put(MEDIATION_ID, mediationId.toString());
             responseData.put("is_muted", !canTalk);
-            responseData.put("is_moderator", isModerator);// If user is moderator, add information about all participants
+            responseData.put("is_moderator", isModerator);
+            responseData.put("is_solved", Boolean.TRUE.equals(mediation.getIsSolved()));
+            
+            // If mediation is solved, include the reason
+            if (Boolean.TRUE.equals(mediation.getIsSolved()) && mediation.getReason() != null) {
+                responseData.put("reason", mediation.getReason());
+            }
+
+            // If user is moderator, add information about all participants
             if (isModerator) {
                 Optional.of(participantService.getAllParticipants(mediationId))
                         .map(participants -> participants.stream()
                                 .map(mapParticipant)
-                                .toList())                        .ifPresentOrElse(
+                                .toList())
+                        .ifPresentOrElse(
                                 participantsStatus -> responseData.put("participants_status", participantsStatus),
                                 () -> { /* Error getting participants status - ignore */ }
                         );
@@ -142,6 +157,13 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
         String roomKey = ROOM_PREFIX + mediationId;
 
         try {
+            // Check if mediation is closed before allowing messages
+            Mediation mediation = mediationService.getMediationById(mediationId);
+            if (Boolean.TRUE.equals(mediation.getIsSolved())) {
+                sendErrorResponse(session, "Cannot send messages: this mediation has been closed");
+                return;
+            }
+
             // Save message (validation handled in MessageService)
             Message savedMessage = messageService.saveMessage(mediationId, userId, content);
             Map<String, Object> messageData = Map.of(MEDIATION_ID, mediationId.toString(), MESSAGE, mapMessage(savedMessage));
@@ -253,5 +275,24 @@ public class MediationWebSocketHandler extends TextWebSocketHandler {
             }        } catch (IllegalArgumentException e) {
             sendErrorResponse(session, "Invalid target user ID");
         }
+    }
+
+    /**
+     * Broadcasts mediation closure notification to all participants in the room
+     *
+     * @param mediationId UUID of the mediation that was closed
+     * @param moderatorUsername Username of the moderator who closed the mediation
+     * @param reason Reason for closing the mediation
+     */
+    public void broadcastMediationClosed(UUID mediationId, String moderatorUsername, String reason) {
+        String roomKey = ROOM_PREFIX + mediationId;
+        Map<String, Object> closureData = Map.of(
+                MEDIATION_ID, mediationId.toString(),
+                "moderator_username", moderatorUsername,
+                "reason", reason != null ? reason : "",
+                MESSAGE, "This mediation has been closed by " + moderatorUsername
+        );
+        
+        broadcastToRoom(roomKey, createResponse("mediationClosed", "sucess", closureData), null);
     }
 }
