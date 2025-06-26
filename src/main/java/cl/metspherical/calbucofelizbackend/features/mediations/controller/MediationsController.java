@@ -2,6 +2,7 @@ package cl.metspherical.calbucofelizbackend.features.mediations.controller;
 
 
 import cl.metspherical.calbucofelizbackend.common.security.utils.SecurityUtils;
+import cl.metspherical.calbucofelizbackend.features.mediations.dto.CloseMediationDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.CreateMediationRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationsResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.service.MediationService;
@@ -31,5 +32,12 @@ public class MediationsController {
         UUID userId = SecurityUtils.getCurrentUserId();
         MediationsResponseDTO mediations = mediationService.getAllMediationsByUser(userId);
         return ResponseEntity.ok(mediations);
+    }
+
+    @PostMapping("/{id}/close")
+    public ResponseEntity<CloseMediationDTO> closeMediation(@PathVariable UUID id, @RequestBody CloseMediationDTO closeMediationDTO) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        CloseMediationDTO reponse = mediationService.closeMediation(userId,id,closeMediationDTO);
+        return ResponseEntity.ok(reponse);
     }
 }
