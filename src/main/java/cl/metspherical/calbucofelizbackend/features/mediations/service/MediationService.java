@@ -179,7 +179,8 @@ public class MediationService {
                 mediation.getId(),
                 mediation.getTitle(),
                 Boolean.TRUE.equals(mediation.getMediationType()) ? "private" : "public",
-                mediation.getCreatedBy().getUsername()
+                mediation.getCreatedBy().getUsername(),
+                mediation.getIsSolved()
         );
     }
 
