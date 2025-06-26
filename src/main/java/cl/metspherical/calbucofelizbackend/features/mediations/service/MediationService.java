@@ -1,5 +1,6 @@
 package cl.metspherical.calbucofelizbackend.features.mediations.service;
 
+import cl.metspherical.calbucofelizbackend.features.mediations.dto.CloseMediationDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.CreateMediationRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationOverviewDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationsResponseDTO;
@@ -55,6 +56,7 @@ public class MediationService {
                 .createdBy(creator)
                 .participants(new HashSet<>())
                 .messages(new HashSet<>())
+                .reason(null)
                 .build();
 
         // Save mediation first to get ID
@@ -66,6 +68,38 @@ public class MediationService {
         participantService.assignAutomaticModerator(savedMediation.getId());
 
         return savedMediation.getId();
+    }
+
+    /**
+     * Closes an existing mediation in the system
+     *
+     * @param userId UUID of the user attempting to close the mediation
+     * @param mediationId UUID of the mediation to be closed
+     * @param closeMediationDTO DTO containing the reason for closing the mediation
+     * @return CloseMediationDTO containing the updated mediation details
+     */
+    public CloseMediationDTO closeMediation(UUID userId, UUID mediationId, CloseMediationDTO closeMediationDTO) {
+        // Verify the mediation exists
+        Mediation mediation = mediationRepository.findById(mediationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Mediation not found with id: " + mediationId));
+
+        // Check if the user is a participant and a moderator
+        MediationParticipant participant = mediationParticipantRepository.findByMediationIdAndUserId(mediationId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a participant of this mediation"));
+
+        if (!Boolean.TRUE.equals(participant.getIsModerator())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a moderator of this mediation");
+        }
+
+        // Update mediation fields
+        mediation.setIsSolved(true);
+        mediation.setReason(closeMediationDTO.reason());
+
+        // Save the updated mediation
+        mediationRepository.save(mediation);
+
+        return closeMediationDTO;
     }
 
     /**
