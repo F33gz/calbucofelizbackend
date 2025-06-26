@@ -6,6 +6,7 @@ public record MediationOverviewDTO(
         UUID id,
         String title,
         String type,
-        String owner_username
+        String owner_username,
+        Boolean isSolved
 ) {
 }
