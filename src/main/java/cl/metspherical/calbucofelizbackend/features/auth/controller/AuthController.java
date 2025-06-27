@@ -61,4 +61,10 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/password-recover")
+    public ResponseEntity<Void> recovery(@Valid @RequestBody RecoveryRequestDTO request) {
+        authenticationService.recoverPassword(request);
+        return ResponseEntity.ok().build();
+    }
 }
