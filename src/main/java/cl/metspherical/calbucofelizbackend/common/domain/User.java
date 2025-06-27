@@ -108,7 +108,11 @@ public class User {
 
     public List<String> getRoles() {
         return roles.stream()
-            .map(Role::getName)
-            .toList();
+                .map(role -> role.getName().name())
+                .toList();
+    }
+
+    public Set<Role> getRoleEntities() {
+        return roles;
     }
 }

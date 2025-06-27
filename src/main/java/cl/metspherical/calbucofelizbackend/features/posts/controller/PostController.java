@@ -1,10 +1,6 @@
 package cl.metspherical.calbucofelizbackend.features.posts.controller;
 
-import cl.metspherical.calbucofelizbackend.features.posts.dto.CreateCommentInputDTO;
-import cl.metspherical.calbucofelizbackend.features.posts.dto.CreateCommentRequestDTO;
-import cl.metspherical.calbucofelizbackend.features.posts.dto.CreatePostRequestDTO;
-import cl.metspherical.calbucofelizbackend.features.posts.dto.PostCommentsResponseDTO;
-import cl.metspherical.calbucofelizbackend.features.posts.dto.PostDetailDTO;
+import cl.metspherical.calbucofelizbackend.features.posts.dto.*;
 import cl.metspherical.calbucofelizbackend.features.posts.service.PostService;
 import cl.metspherical.calbucofelizbackend.common.security.utils.SecurityUtils;
 import cl.metspherical.calbucofelizbackend.common.service.VisionSafeSearchService;
@@ -52,6 +48,17 @@ public class PostController {
         UUID postId = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("postId", postId));
+    }
+
+    @GetMapping()
+    public ResponseEntity<PostPaginatedResponseDTO> getPostsPaginated(
+            @RequestParam Integer page, 
+            @RequestParam Integer size,
+            @RequestParam(required = false) String category, 
+            @RequestParam(required = false) String username) {
+        
+        PostPaginatedResponseDTO response = postService.getPostsPaginated(page, size, category, username);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

@@ -15,6 +15,9 @@ import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
 import cl.metspherical.calbucofelizbackend.features.posts.repository.PostLikeRepository;
 import cl.metspherical.calbucofelizbackend.common.service.CloudinaryUploadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -324,5 +327,57 @@ public class PostService {
 
         // 2. Delete the like directly
         postLikeRepository.deleteByPost_IdAndUser_Id(postId, userId);
+    }
+
+    /**
+     * Gets paginated posts with optional filtering by category and username
+     *
+     * @param page Page number (0-based)
+     * @param size Number of posts per page
+     * @param category Optional category filter (searches for similar category names)
+     * @param username Optional username filter (searches for similar usernames, names, or lastNames)
+     * @return PostPaginatedResponseDTO containing posts and pagination info
+     */
+    public PostPaginatedResponseDTO getPostsPaginated(Integer page, Integer size, String category, String username) {
+        // 1. Create Pageable with size validation and ordering
+        int validatedSize = Math.min(Math.max(size, 1), 50); // Min 1, Max 50 posts per page
+        int validatedPage = Math.max(page, 0); // Min page 0
+        
+        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+        Page<Post> postsPage;
+
+        // 2. Apply filters based on provided parameters
+        boolean hasCategory = category != null && !category.trim().isEmpty();
+        boolean hasUsername = username != null && !username.trim().isEmpty();
+
+        if (hasCategory && hasUsername) {
+            // Both filters
+            postsPage = postRepository.findPostsByCategoryAndUsernameWithDetails(
+                    category.trim(), username.trim(), pageable);
+        } else if (hasCategory) {
+            // Only category filter
+            postsPage = postRepository.findPostsByCategoryWithDetails(category.trim(), pageable);
+        } else if (hasUsername) {
+            // Only username filter
+            postsPage = postRepository.findPostsByUsernameWithDetails(username.trim(), pageable);
+        } else {
+            // No filters - all posts
+            postsPage = postRepository.findAllPostsWithDetails(pageable);
+        }
+
+        // 3. Convert posts to DTOs
+        List<PostDetailDTO> postDTOs = postsPage.getContent().stream()
+                .map(this::mapPostToPostDetailDTO)
+                .toList();
+
+        // 4. Build pagination response
+        return new PostPaginatedResponseDTO(
+                postDTOs,
+                postsPage.hasNext(),
+                postsPage.getNumber(),
+                postsPage.isFirst(),
+                postsPage.isLast(),
+                postsPage.hasPrevious()
+        );
     }
 }

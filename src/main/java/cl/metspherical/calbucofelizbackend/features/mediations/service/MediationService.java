@@ -1,15 +1,17 @@
 package cl.metspherical.calbucofelizbackend.features.mediations.service;
 
+import cl.metspherical.calbucofelizbackend.features.mediations.dto.CloseMediationDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.CreateMediationRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationOverviewDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.dto.MediationsResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.Mediation;
 import cl.metspherical.calbucofelizbackend.features.mediations.model.MediationParticipant;
+import cl.metspherical.calbucofelizbackend.features.mediations.websocket.MediationWebSocketHandler;
 import cl.metspherical.calbucofelizbackend.common.domain.User;
 import cl.metspherical.calbucofelizbackend.features.mediations.repository.MediationRepository;
 import cl.metspherical.calbucofelizbackend.features.mediations.repository.MediationParticipantRepository;
 import cl.metspherical.calbucofelizbackend.common.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +27,25 @@ import java.util.UUID;
  * including creation and management of mediations and their participants
  */
 @Service
-@RequiredArgsConstructor
 public class MediationService {
 
     private final MediationRepository mediationRepository;
     private final MediationParticipantRepository mediationParticipantRepository;
     private final UserRepository userRepository;
+    private final MediationParticipantService participantService;
+    private final MediationWebSocketHandler webSocketHandler;
+
+    public MediationService(MediationRepository mediationRepository,
+                          MediationParticipantRepository mediationParticipantRepository,
+                          UserRepository userRepository,
+                          MediationParticipantService participantService,
+                          @Lazy MediationWebSocketHandler webSocketHandler) {
+        this.mediationRepository = mediationRepository;
+        this.mediationParticipantRepository = mediationParticipantRepository;
+        this.userRepository = userRepository;
+        this.participantService = participantService;
+        this.webSocketHandler = webSocketHandler;
+    }
 
     /**
      * Creates a new mediation in the system
@@ -54,6 +69,7 @@ public class MediationService {
                 .createdBy(creator)
                 .participants(new HashSet<>())
                 .messages(new HashSet<>())
+                .reason(null)
                 .build();
 
         // Save mediation first to get ID
@@ -61,87 +77,80 @@ public class MediationService {
 
         // Create participants based on mediation type
         createMediationParticipants(savedMediation, request);
+        // Automatically assign a moderator
+        participantService.assignAutomaticModerator(savedMediation.getId());
 
         return savedMediation.getId();
     }
 
     /**
+     * Closes an existing mediation in the system
+     *
+     * @param userId UUID of the user attempting to close the mediation
+     * @param mediationId UUID of the mediation to be closed
+     * @param closeMediationDTO DTO containing the reason for closing the mediation
+     * @return CloseMediationDTO containing the updated mediation details
+     */
+    @Transactional
+    public CloseMediationDTO closeMediation(UUID userId, UUID mediationId, CloseMediationDTO closeMediationDTO) {
+        // Verify the mediation exists
+        Mediation mediation = mediationRepository.findById(mediationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Mediation not found with id: " + mediationId));
+
+        // Check if the user is a participant and a moderator
+        MediationParticipant participant = mediationParticipantRepository.findByMediationIdAndUserId(mediationId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a participant of this mediation"));
+
+        if (!Boolean.TRUE.equals(participant.getIsModerator())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a moderator of this mediation");
+        }
+
+        // Update mediation fields
+        mediation.setIsSolved(true);
+        mediation.setReason(closeMediationDTO.reason());
+
+        // Save the updated mediation
+        mediationRepository.save(mediation);
+
+        // Broadcast mediation closure to all participants
+        webSocketHandler.broadcastMediationClosed(mediationId, participant.getUser().getUsername(), closeMediationDTO.reason());
+
+        return closeMediationDTO;
+    }
+
+    /**
      * Creates mediation participants based on mediation type
-     * 
-     * @param mediation The mediation entity
-     * @param request The creation request DTO
      */
     private void createMediationParticipants(Mediation mediation, CreateMediationRequestDTO request) {
         Set<MediationParticipant> participants;
 
         if (Boolean.FALSE.equals(request.type())) {
             // Public mediation - add all users from database
-            participants = createPublicMediationParticipants(mediation);
+            participants = participantService.createPublicMediationParticipants(mediation);
         } else {
-            // Private mediation - add only specified participants
-            participants = createPrivateMediationParticipants(mediation, request.participants());
+            // Private mediation - add specified participants and ensure creator is included
+            participants = participantService.createPrivateMediationParticipants(mediation, request.participants());
+            
+            // Optimización: verificar si el creador ya está incluido de forma más eficiente
+            boolean creatorAlreadyParticipant = participants.stream()
+                    .map(p -> p.getUser().getId())
+                    .anyMatch(mediation.getCreatedBy().getId()::equals);
+            
+            if (!creatorAlreadyParticipant) {
+                participants.add(MediationParticipant.builder()
+                        .user(mediation.getCreatedBy())
+                        .mediation(mediation)
+                        .canTalk(true)
+                        .isModerator(false)
+                        .build());
+            }
         }
 
-        // Save all participants
+        // Optimización: operación batch en una sola transacción
         mediationParticipantRepository.saveAll(participants);
-        
-        // Update mediation with participants
         mediation.setParticipants(participants);
         mediationRepository.save(mediation);
-    }
-
-    /**
-     * Creates participants for public mediation (all users can participate)
-     * 
-     * @param mediation The mediation entity
-     * @return Set of MediationParticipant entities
-     */
-    private Set<MediationParticipant> createPublicMediationParticipants(Mediation mediation) {
-        List<User> allUsers = userRepository.findAll();
-        Set<MediationParticipant> participants = new HashSet<>();
-
-        for (User user : allUsers) {
-            MediationParticipant participant = MediationParticipant.builder()
-                    .user(user)
-                    .mediation(mediation)
-                    .canTalk(true) // All participants can talk by default
-                    .build();
-            participants.add(participant);
-        }
-
-        return participants;
-    }
-
-    /**
-     * Creates participants for private mediation (only specified users)
-     * 
-     * @param mediation The mediation entity
-     * @param participantUsernames List of usernames to add as participants
-     * @return Set of MediationParticipant entities
-     */
-    private Set<MediationParticipant> createPrivateMediationParticipants(Mediation mediation, List<String> participantUsernames) {
-        Set<MediationParticipant> participants = new HashSet<>();
-
-        if (participantUsernames == null || participantUsernames.isEmpty()) {
-            return participants;
-        }
-
-        for (String username : participantUsernames) {
-            User user = userRepository.findByUsername(username.trim())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, 
-                            "User not found with username: " + username
-                    ));
-
-            MediationParticipant participant = MediationParticipant.builder()
-                    .user(user)
-                    .mediation(mediation)
-                    .canTalk(true) // All participants can talk by default
-                    .build();
-            participants.add(participant);
-        }
-
-        return participants;
     }
 
     /**
@@ -164,19 +173,28 @@ public class MediationService {
 
     /**
      * Converts Mediation entity to MediationOverviewDTO
-     * 
-     * @param mediation The mediation entity to convert
-     * @return MediationOverviewDTO with transformed data
      */
     private MediationOverviewDTO convertToMediationOverviewDTO(Mediation mediation) {
-        // Transform boolean mediationType to string
-        String typeString = Boolean.TRUE.equals(mediation.getMediationType()) ? "private" : "public";
-        
         return new MediationOverviewDTO(
                 mediation.getId(),
                 mediation.getTitle(),
-                typeString,
-                mediation.getCreatedBy().getUsername()
+                Boolean.TRUE.equals(mediation.getMediationType()) ? "private" : "public",
+                mediation.getCreatedBy().getUsername(),
+                mediation.getIsSolved()
         );
+    }
+
+    /**
+     * Gets a mediation by its ID
+     *
+     * @param mediationId UUID of the mediation to retrieve
+     * @return Mediation entity
+     * @throws ResponseStatusException if mediation is not found
+     */
+    @Transactional(readOnly = true)
+    public Mediation getMediationById(UUID mediationId) {
+        return mediationRepository.findById(mediationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Mediation not found with id: " + mediationId));
     }
 }
