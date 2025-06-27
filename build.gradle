@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id "org.sonarqube" version "4.4.1.3373"
 }
 
 group = 'cl.metspherical'
@@ -33,7 +34,20 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'com.google.cloud:google-cloud-vision:3.36.0'
+	implementation group: 'com.cloudinary', name: 'cloudinary-http44', version: '1.39.0'
+	implementation 'com.twelvemonkeys.imageio:imageio-core:3.8.1'
+	implementation 'com.twelvemonkeys.imageio:imageio-jpeg:3.8.1'
+	implementation 'com.twelvemonkeys.imageio:imageio-bmp:3.8.1'
+	implementation 'com.twelvemonkeys.imageio:imageio-tiff:3.8.1'
+	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.8.1'
+	implementation 'org.springframework.security:spring-security-messaging'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+	implementation 'org.apache.commons:commons-lang3:3.14.0'
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+	implementation 'com.twilio.sdk:twilio:10.6.3'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
