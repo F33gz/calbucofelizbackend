@@ -5,6 +5,7 @@ import cl.metspherical.calbucofelizbackend.features.emergency.dto.EmergencyDTO;
 import cl.metspherical.calbucofelizbackend.features.emergency.dto.EmergencyRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.emergency.service.EmergencyService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,5 +27,12 @@ public class EmergencyController {
     @GetMapping()
     public List<EmergencyDTO> getEmergency(){
         return emergencyService.getEmergencies();
+    }
+
+    @DeleteMapping("/cancel")
+    public ResponseEntity<Void> cancelEmergency(){
+        UUID userId = SecurityUtils.getCurrentUserId();
+        emergencyService.cancelEmergency(userId);
+        return ResponseEntity.ok().build();
     }
 }
