@@ -21,6 +21,8 @@ import javax.crypto.SecretKey;
 @Service
 public class JwtService {
 
+    private static final String USER_ID_CLAIM = "userId";
+
     @Value("${jwt.secret}")
     private String jwtSecret;
     
@@ -59,7 +61,7 @@ public class JwtService {
      * @return User ID as UUID
      */
     public UUID extractUserId(String token) {
-        String userIdString = extractClaim(token, claims -> claims.get("userId", String.class));
+        String userIdString = extractClaim(token, claims -> claims.get(USER_ID_CLAIM, String.class));
         return UUID.fromString(userIdString);
     }
 
@@ -140,7 +142,7 @@ public class JwtService {
      */
     public String generateAccessToken(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("userId", user.getId().toString());
+        extraClaims.put(USER_ID_CLAIM, user.getId().toString());
         extraClaims.put("username", user.getUsername());
         extraClaims.put("roles", user.getRoles());
         
@@ -155,7 +157,7 @@ public class JwtService {
      */
     public String generateRefreshToken(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("userId", user.getId().toString());
+        extraClaims.put(USER_ID_CLAIM, user.getId().toString());
         extraClaims.put("type", "refresh");
         
         return createToken(extraClaims, user.getRut(), jwtRefreshExpiration);
