@@ -8,6 +8,10 @@ import java.util.stream.IntStream;
  */
 public class RutValidator {
 
+    private RutValidator() {
+        throw new IllegalStateException("Utility class");
+    }
+
     /**
      * Validates a Chilean RUT using the official check digit algorithm with functional programming
      * @param rut The RUT string to validate (e.g., "12345678-9", "12.345.678-K")
@@ -41,7 +45,11 @@ public class RutValidator {
                     .sum();
             
             int remainder = 11 - (sum % 11);
-            char calculatedDigit = (remainder == 11) ? '0' : (remainder == 10) ? 'K' : (char) ('0' + remainder);
+            char calculatedDigit = switch (remainder) {
+                case 11 -> '0';
+                case 10 -> 'K';
+                default -> (char) ('0' + remainder);
+            };
             
             return checkDigit == calculatedDigit;
 

@@ -7,7 +7,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public record JwtAuthenticationToken(UUID userId,String username, List<String> roles) implements Authentication {
 
@@ -30,7 +29,7 @@ public record JwtAuthenticationToken(UUID userId,String username, List<String> r
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
