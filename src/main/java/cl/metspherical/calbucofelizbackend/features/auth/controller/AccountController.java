@@ -1,6 +1,7 @@
 package cl.metspherical.calbucofelizbackend.features.auth.controller;
 
 import cl.metspherical.calbucofelizbackend.common.security.utils.SecurityUtils;
+import cl.metspherical.calbucofelizbackend.features.auth.dto.ProfileResponseDTO;
 import cl.metspherical.calbucofelizbackend.features.auth.dto.UserEditRequestDTO;
 import cl.metspherical.calbucofelizbackend.features.auth.dto.UserProfileResponseDTO;
 import cl.metspherical.calbucofelizbackend.common.service.VisionSafeSearchService;
@@ -53,6 +54,15 @@ public class AccountController {
         );
 
         UserProfileResponseDTO response = accountService.updateUser(request,userId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<ProfileResponseDTO> getUserProfile(){
+        UUID userId = SecurityUtils.getCurrentUserId();
+
+        ProfileResponseDTO response = accountService.getUserProfile(userId);
 
         return ResponseEntity.ok(response);
     }

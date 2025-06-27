@@ -36,6 +36,8 @@ public class Mediation {
     @Size(max = 100, message = "Mediation title cannot exceed 100 characters")
     private String title;
 
+    private String reason;
+
     @Column(name = "is_solved", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     @Builder.Default
     private Boolean isSolved = false;
