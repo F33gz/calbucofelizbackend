@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs (mantener solo el directorio, no el wrapper)
+build/
+target/
+*.jar
+*.war
+
+# Gradle cache
+.gradle/
+
+# Logs
+*.log
+logs/
+
+# Docker (excluir archivos innecesarios para Render)
+docker-compose*
+docker-build.*
+.dockerignore
+
+# Documentation
+README.md
+*.md
+
+# Test files
+src/test/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.example
+
+# Scripts de desarrollo local (innecesarios para Render)
+docker-build.ps1
+docker-build.sh
+init.sql
+
+# Node modules (si los hubiera)
+node_modules/
+
+# Backup files
+*.bak
+*.tmp
+*.swp
+*~
+
+# Archivos específicos de desarrollo local
+application-docker.properties
