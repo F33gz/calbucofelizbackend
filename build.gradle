@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.4.5'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id "org.sonarqube" version "4.4.1.3373"
+	id 'jacoco' // Added JaCoCo plugin
 }
 
 group = 'cl.metspherical'
@@ -57,4 +58,31 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Ensure JaCoCo agent is attached to the test JVM
+	jacoco {
+		enabled = true
+		destinationFile = layout.buildDirectory.file('jacoco/test.exec').get().asFile
+		classDumpDir = layout.buildDirectory.dir('jacoco/classpathdumps').get().asFile
+	}
 }
+
+jacocoTestReport {
+    // Depends on the test task to ensure execution data is available
+    dependsOn tasks.named('test')
+
+    reports {
+        xml.required = true // For SonarQube and other tools
+        csv.required = false // Typically not needed if XML is generated
+        html.required = true // For human-readable reports
+    }
+
+    // Configure source and class directories for the report
+    sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(files(sourceSets.main.output))
+    executionData.setFrom(files(layout.buildDirectory.file('jacoco/test.exec')))
+}
+
+// Optional: Make build task depend on jacocoTestReport to always generate reports
+// tasks.named('build') {
+//    dependsOn jacocoTestReport
+// }
