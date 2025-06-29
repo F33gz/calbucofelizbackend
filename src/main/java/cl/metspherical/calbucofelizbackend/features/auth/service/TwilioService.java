@@ -46,7 +46,6 @@ public class TwilioService {
                     new PhoneNumber(twilioPhoneNumber),
                     messageBody
             ).create();
-            System.out.println("paso");
 
 
             return message.getSid();
@@ -64,7 +63,7 @@ public class TwilioService {
      */
     public String sendPasswordRecoverySms(String phoneNumber, String temporaryPassword) {
         String messageBody = String.format(
-                "Codigo para CalbucoFeliz es: "+temporaryPassword
+                "Codigo para CalbucoFeliz es: %s", temporaryPassword
         );
         return sendSms(phoneNumber, messageBody);
     }

@@ -80,4 +80,24 @@ public class EmergencyService {
                 emergency.getCreatedAt()
         );
     }
+
+    /**
+     * Deletes the last emergency created by the user.
+     *
+     * @param userId UUID of the user whose last emergency will be deleted
+     * @throws ResponseStatusException if the user has no emergencies
+     */
+    @Transactional
+    public void cancelEmergency(UUID userId) {
+        // Validar que el usuario existe
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with id: " + userId));
+
+        // Obtener la última emergencia del usuario
+        Emergency lastEmergency = emergencyRepository.findTopByAuthorOrderByCreatedAtDesc(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No emergencies found for user with id: " + userId));
+
+        // Eliminar la emergencia
+        emergencyRepository.delete(lastEmergency);
+    }
 }
