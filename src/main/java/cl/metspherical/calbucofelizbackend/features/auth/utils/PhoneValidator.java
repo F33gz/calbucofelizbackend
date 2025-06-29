@@ -17,6 +17,8 @@ public class PhoneValidator {
      */
     public static boolean isValidChileanPhone(String phone) {
         if (phone == null) return false;
-        return phone.matches("^(0?9)?[98765432]\\d{7}$");
+        // Regex for 9-digit numbers starting with 9, optionally prefixed with 09.
+        // Ensures the part after the prefix starts with a digit from 2-9, followed by 7 digits.
+        return phone.matches("^((09)|9)[2-9]\\d{7}$");
     }
 }
