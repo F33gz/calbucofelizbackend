@@ -4,7 +4,6 @@ package cl.metspherical.calbucofelizbackend.features.emergency.model;
 import cl.metspherical.calbucofelizbackend.common.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
